@@ -1,5 +1,5 @@
 BINARY_NAME=tdd-ai
-VERSION?=0.4.0
+VERSION?=0.4.1
 BUILD_DIR=bin
 
 .PHONY: build test lint clean install

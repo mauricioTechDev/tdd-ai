@@ -1,7 +1,20 @@
 {
   "name": "tdd-ai",
   "version": "0.4.0",
-  "description": "TDD guardrails for AI coding agents",
+  "description": "Enforce test-driven development for AI coding agents — works with Cursor, GitHub Copilot, Claude Code, Windsurf, and any LLM with terminal access",
+  "keywords": [
+    "tdd",
+    "testing",
+    "ai",
+    "llm",
+    "cursor",
+    "copilot",
+    "claude",
+    "windsurf",
+    "test-driven-development",
+    "coding-agent",
+    "developer-tools"
+  ],
   "license": "MIT",
   "repository": {
     "type": "git",

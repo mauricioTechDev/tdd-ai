@@ -18,7 +18,13 @@ LLMs are excellent at writing tests and code. What they lack is **discipline**. 
 ## Install
 
 ```bash
-# Build from source (requires Go 1.22+)
+# Install via npm (recommended)
+npm install -g tdd-ai
+```
+
+Or build from source (requires Go 1.22+):
+
+```bash
 make build
 
 # Binary is at bin/tdd-ai
