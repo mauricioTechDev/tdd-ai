@@ -1,2 +1,4 @@
 bin/
+dist/
+npm/bin/
 .tdd-ai.json
