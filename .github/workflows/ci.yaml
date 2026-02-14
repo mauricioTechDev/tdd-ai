@@ -19,7 +19,7 @@ jobs:
       - name: Lint
         uses: golangci/golangci-lint-action@v7
         with:
-          version: v2
+          version: v2.9
 
       - name: Test
         run: go test -race -coverprofile=coverage.out ./...
