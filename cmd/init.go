@@ -27,7 +27,7 @@ command and auto-populates the test result for 'phase next'.`,
   tdd-ai init --retrofit
   tdd-ai init --test-cmd "go test ./..."
   tdd-ai init --retrofit --test-cmd "dotnet test MyProject.Tests"`,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(cmd *cobra.Command, _ []string) error {
 		dir := getWorkDir()
 
 		if session.Exists(dir) {

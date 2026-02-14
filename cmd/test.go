@@ -23,7 +23,7 @@ Use --summary to show only the last 20 lines of test output. This is useful
 for AI agents where full output wastes context window on verbose stack traces.`,
 	Example: `  tdd-ai test
   tdd-ai test --summary`,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(cmd *cobra.Command, _ []string) error {
 		dir := getWorkDir()
 		s, err := session.LoadOrFail(dir)
 		if err != nil {

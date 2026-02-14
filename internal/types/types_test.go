@@ -246,7 +246,7 @@ func TestAddEventPhaseTransition(t *testing.T) {
 
 func TestAddEventMultiple(t *testing.T) {
 	s := NewSession()
-	s.AddEvent("init", func(e *Event) {})
+	s.AddEvent("init", func(_ *Event) {})
 	s.AddEvent("spec_add", func(e *Event) { e.SpecCount = 3 })
 	s.AddEvent("test_run", func(e *Event) { e.Result = "pass" })
 

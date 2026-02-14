@@ -23,7 +23,7 @@ structured guidance telling the AI what to do and what NOT to do.
 
 The CLI does NOT run tests — the AI agent runs tests itself. This tool
 provides the guardrails and feedback loop that LLMs lack on their own.`,
-	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+	PersistentPreRun: func(cmd *cobra.Command, _ []string) {
 		// Auto-detect format: default to JSON when stdout is not a terminal
 		// (i.e., when an AI agent is running the CLI via pipe/redirect).
 		// Explicit --format flag always overrides.

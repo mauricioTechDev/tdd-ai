@@ -14,7 +14,7 @@ var statusCmd = &cobra.Command{
 	Long:  "Display a full overview of the TDD session: current phase, mode, spec summary, and recommended next action.",
 	Example: `  tdd-ai status
   tdd-ai status --format json`,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(cmd *cobra.Command, _ []string) error {
 		dir := getWorkDir()
 		s, err := session.LoadOrFail(dir)
 		if err != nil {

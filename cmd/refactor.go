@@ -19,7 +19,7 @@ var refactorCmd = &cobra.Command{
 	Example: `  tdd-ai refactor
   tdd-ai refactor status
   tdd-ai refactor reflect 1 --answer "Tests are already descriptive and clear"`,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(cmd *cobra.Command, _ []string) error {
 		dir := getWorkDir()
 		s, err := session.LoadOrFail(dir)
 		if err != nil {
@@ -110,7 +110,7 @@ var refactorStatusCmd = &cobra.Command{
 	Long:  "Display all 6 reflection questions with their answered/pending status.",
 	Example: `  tdd-ai refactor status
   tdd-ai refactor status --format json`,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(cmd *cobra.Command, _ []string) error {
 		dir := getWorkDir()
 		s, err := session.LoadOrFail(dir)
 		if err != nil {

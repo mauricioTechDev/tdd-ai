@@ -9,11 +9,11 @@ import (
 )
 
 var resetCmd = &cobra.Command{
-	Use:   "reset",
-	Short: "Clear the current TDD session",
-	Long:  "Removes the .tdd-ai.json file, allowing you to start fresh with 'tdd-ai init'.",
+	Use:     "reset",
+	Short:   "Clear the current TDD session",
+	Long:    "Removes the .tdd-ai.json file, allowing you to start fresh with 'tdd-ai init'.",
 	Example: `  tdd-ai reset`,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(cmd *cobra.Command, _ []string) error {
 		dir := getWorkDir()
 
 		if !session.Exists(dir) {

@@ -286,7 +286,7 @@ func TestFormatGuidanceTextSortsByID(t *testing.T) {
 	if idx1 == -1 || idx2 == -1 || idx3 == -1 {
 		t.Fatalf("output missing specs, got:\n%s", out)
 	}
-	if !(idx1 < idx2 && idx2 < idx3) {
+	if idx1 >= idx2 || idx2 >= idx3 {
 		t.Errorf("specs should be sorted by ID, got:\n%s", out)
 	}
 }
@@ -592,7 +592,7 @@ func TestFormatStatusTextSortsByID(t *testing.T) {
 	if idx1 == -1 || idx2 == -1 || idx5 == -1 || idx7 == -1 {
 		t.Fatalf("output missing specs, got:\n%s", out)
 	}
-	if !(idx1 < idx2 && idx2 < idx5 && idx5 < idx7) {
+	if idx1 >= idx2 || idx2 >= idx5 || idx5 >= idx7 {
 		t.Errorf("specs should be sorted by ID, got:\n%s", out)
 	}
 }
