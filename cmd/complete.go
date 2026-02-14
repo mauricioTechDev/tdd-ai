@@ -74,6 +74,12 @@ This is the "I'm done, wrap it up" command.`,
 			return fmt.Errorf("cannot complete: tests are failing. Fix tests before completing the cycle")
 		}
 
+		// Block complete when in refactor with unanswered reflections
+		if s.Phase == types.PhaseRefactor && len(s.Reflections) > 0 && !s.AllReflectionsAnswered() {
+			pending := s.PendingReflections()
+			return fmt.Errorf("cannot complete: %d reflection question(s) unanswered. Use 'tdd-ai refactor status' to see them", len(pending))
+		}
+
 		// Advance through remaining phases to done
 		phasesAdvanced := 0
 		mode := s.GetMode()

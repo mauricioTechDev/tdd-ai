@@ -257,3 +257,101 @@ func TestAddEventMultiple(t *testing.T) {
 		t.Errorf("History[1].SpecCount = %d, want 3", s.History[1].SpecCount)
 	}
 }
+
+func TestPendingReflections(t *testing.T) {
+	s := NewSession()
+	s.Reflections = []ReflectionQuestion{
+		{ID: 1, Question: "Q1", Answer: "answered with enough words here"},
+		{ID: 2, Question: "Q2", Answer: ""},
+		{ID: 3, Question: "Q3", Answer: "also answered with enough words"},
+	}
+
+	pending := s.PendingReflections()
+	if len(pending) != 1 {
+		t.Fatalf("PendingReflections() = %d, want 1", len(pending))
+	}
+	if pending[0].ID != 2 {
+		t.Errorf("PendingReflections()[0].ID = %d, want 2", pending[0].ID)
+	}
+}
+
+func TestPendingReflectionsAllAnswered(t *testing.T) {
+	s := NewSession()
+	s.Reflections = []ReflectionQuestion{
+		{ID: 1, Question: "Q1", Answer: "done"},
+	}
+
+	pending := s.PendingReflections()
+	if len(pending) != 0 {
+		t.Errorf("PendingReflections() = %d, want 0", len(pending))
+	}
+}
+
+func TestPendingReflectionsEmpty(t *testing.T) {
+	s := NewSession()
+
+	pending := s.PendingReflections()
+	if len(pending) != 0 {
+		t.Errorf("PendingReflections() on empty = %d, want 0", len(pending))
+	}
+}
+
+func TestAllReflectionsAnsweredTrue(t *testing.T) {
+	s := NewSession()
+	s.Reflections = []ReflectionQuestion{
+		{ID: 1, Question: "Q1", Answer: "yes"},
+		{ID: 2, Question: "Q2", Answer: "yes"},
+	}
+
+	if !s.AllReflectionsAnswered() {
+		t.Error("AllReflectionsAnswered() = false, want true")
+	}
+}
+
+func TestAllReflectionsAnsweredFalse(t *testing.T) {
+	s := NewSession()
+	s.Reflections = []ReflectionQuestion{
+		{ID: 1, Question: "Q1", Answer: "yes"},
+		{ID: 2, Question: "Q2", Answer: ""},
+	}
+
+	if s.AllReflectionsAnswered() {
+		t.Error("AllReflectionsAnswered() = true, want false")
+	}
+}
+
+func TestAllReflectionsAnsweredEmptySlice(t *testing.T) {
+	s := NewSession()
+
+	if !s.AllReflectionsAnswered() {
+		t.Error("AllReflectionsAnswered() on empty = false, want true (backward compat)")
+	}
+}
+
+func TestAnswerReflection(t *testing.T) {
+	s := NewSession()
+	s.Reflections = []ReflectionQuestion{
+		{ID: 1, Question: "Q1"},
+		{ID: 2, Question: "Q2"},
+	}
+
+	err := s.AnswerReflection(1, "my detailed answer here")
+	if err != nil {
+		t.Fatalf("AnswerReflection(1) unexpected error: %v", err)
+	}
+	if s.Reflections[0].Answer != "my detailed answer here" {
+		t.Errorf("Reflections[0].Answer = %q, want %q", s.Reflections[0].Answer, "my detailed answer here")
+	}
+}
+
+func TestAnswerReflectionNotFound(t *testing.T) {
+	s := NewSession()
+	s.Reflections = []ReflectionQuestion{
+		{ID: 1, Question: "Q1"},
+	}
+
+	err := s.AnswerReflection(99, "some answer")
+	if err == nil {
+		t.Error("AnswerReflection(99) should return error for nonexistent ID")
+	}
+}

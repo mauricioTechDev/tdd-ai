@@ -58,15 +58,23 @@ type Spec struct {
 	Status      SpecStatus `json:"status"`
 }
 
+// ReflectionQuestion is a structured prompt the agent must answer during the refactor phase.
+type ReflectionQuestion struct {
+	ID       int    `json:"id"`
+	Question string `json:"question"`
+	Answer   string `json:"answer,omitempty"`
+}
+
 // Session holds the full state of a TDD session.
 type Session struct {
-	Phase          Phase   `json:"phase"`
-	Mode           Mode    `json:"mode,omitempty"`
-	TestCmd        string  `json:"test_cmd,omitempty"`
-	LastTestResult string  `json:"last_test_result,omitempty"`
-	Specs          []Spec  `json:"specs"`
-	NextID         int     `json:"next_id"`
-	History        []Event `json:"history,omitempty"`
+	Phase          Phase                `json:"phase"`
+	Mode           Mode                 `json:"mode,omitempty"`
+	TestCmd        string               `json:"test_cmd,omitempty"`
+	LastTestResult string               `json:"last_test_result,omitempty"`
+	Specs          []Spec               `json:"specs"`
+	NextID         int                  `json:"next_id"`
+	Reflections    []ReflectionQuestion `json:"reflections,omitempty"`
+	History        []Event              `json:"history,omitempty"`
 }
 
 // GetMode returns the session mode, defaulting to greenfield if unset.
@@ -135,6 +143,40 @@ func (s *Session) ActiveSpecs() []Spec {
 	return active
 }
 
+// PendingReflections returns reflection questions that have not been answered.
+func (s *Session) PendingReflections() []ReflectionQuestion {
+	var pending []ReflectionQuestion
+	for _, r := range s.Reflections {
+		if r.Answer == "" {
+			pending = append(pending, r)
+		}
+	}
+	return pending
+}
+
+// AllReflectionsAnswered returns true when all reflection questions have answers,
+// or when the reflections slice is empty (backward compatibility).
+func (s *Session) AllReflectionsAnswered() bool {
+	for _, r := range s.Reflections {
+		if r.Answer == "" {
+			return false
+		}
+	}
+	return true
+}
+
+// AnswerReflection sets the answer for a reflection question by ID.
+// Returns an error if the ID is not found.
+func (s *Session) AnswerReflection(id int, answer string) error {
+	for i, r := range s.Reflections {
+		if r.ID == id {
+			s.Reflections[i].Answer = answer
+			return nil
+		}
+	}
+	return fmt.Errorf("reflection question %d not found", id)
+}
+
 // Event records a notable action during the TDD session for audit trail.
 type Event struct {
 	Action    string `json:"action"`
@@ -159,11 +201,12 @@ func (s *Session) AddEvent(action string, opts ...func(*Event)) {
 
 // Guidance is the structured output of the guide command.
 type Guidance struct {
-	Phase        Phase    `json:"phase"`
-	Mode         Mode     `json:"mode"`
-	NextPhase    Phase    `json:"next_phase,omitempty"`
-	TestCmd      string   `json:"test_cmd,omitempty"`
-	Specs        []Spec   `json:"specs"`
-	Instructions []string `json:"instructions"`
-	Rules        []string `json:"rules"`
+	Phase        Phase                `json:"phase"`
+	Mode         Mode                 `json:"mode"`
+	NextPhase    Phase                `json:"next_phase,omitempty"`
+	TestCmd      string               `json:"test_cmd,omitempty"`
+	Specs        []Spec               `json:"specs"`
+	Instructions []string             `json:"instructions"`
+	Rules        []string             `json:"rules"`
+	Reflections  []ReflectionQuestion `json:"reflections,omitempty"`
 }

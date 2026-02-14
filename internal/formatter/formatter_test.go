@@ -465,6 +465,111 @@ func TestNextActionDonePhaseAllSpecsCompleted(t *testing.T) {
 	}
 }
 
+func TestFormatGuidanceTextIncludesReflections(t *testing.T) {
+	g := types.Guidance{
+		Phase:        types.PhaseRefactor,
+		Mode:         types.ModeGreenfield,
+		Instructions: []string{"improve code"},
+		Rules:        []string{"no new features"},
+		Reflections: []types.ReflectionQuestion{
+			{ID: 1, Question: "Can I improve tests?", Answer: "Tests are already descriptive and clear enough"},
+			{ID: 2, Question: "Are tests isolated?", Answer: ""},
+		},
+	}
+
+	out, err := FormatGuidance(g, FormatText)
+	if err != nil {
+		t.Fatalf("FormatGuidance() error: %v", err)
+	}
+
+	if !strings.Contains(out, "Reflections (1/2 answered)") {
+		t.Errorf("text output should contain reflections header, got:\n%s", out)
+	}
+	if !strings.Contains(out, "(answered) Can I improve tests?") {
+		t.Errorf("text output should show answered question, got:\n%s", out)
+	}
+	if !strings.Contains(out, "(pending) Are tests isolated?") {
+		t.Errorf("text output should show pending question, got:\n%s", out)
+	}
+	if !strings.Contains(out, "Tests are already descriptive and clear enough") {
+		t.Errorf("text output should show answer text, got:\n%s", out)
+	}
+}
+
+func TestFormatGuidanceJSONIncludesReflections(t *testing.T) {
+	g := types.Guidance{
+		Phase:        types.PhaseRefactor,
+		Mode:         types.ModeGreenfield,
+		Specs:        []types.Spec{},
+		Instructions: []string{"improve code"},
+		Rules:        []string{"no new features"},
+		Reflections: []types.ReflectionQuestion{
+			{ID: 1, Question: "Q1", Answer: "answered with enough words here"},
+			{ID: 2, Question: "Q2", Answer: ""},
+		},
+	}
+
+	out, err := FormatGuidance(g, FormatJSON)
+	if err != nil {
+		t.Fatalf("FormatGuidance() error: %v", err)
+	}
+
+	var parsed map[string]interface{}
+	if err := json.Unmarshal([]byte(out), &parsed); err != nil {
+		t.Fatalf("output is not valid JSON: %v", err)
+	}
+
+	reflections, ok := parsed["reflections"].([]interface{})
+	if !ok {
+		t.Fatal("reflections field should be present in JSON output")
+	}
+	if len(reflections) != 2 {
+		t.Errorf("reflections length = %d, want 2", len(reflections))
+	}
+}
+
+func TestFormatGuidanceJSONOmitsEmptyReflections(t *testing.T) {
+	g := types.Guidance{
+		Phase:        types.PhaseRed,
+		Mode:         types.ModeGreenfield,
+		Specs:        []types.Spec{},
+		Instructions: []string{"write tests"},
+		Rules:        []string{"no impl"},
+	}
+
+	out, err := FormatGuidance(g, FormatJSON)
+	if err != nil {
+		t.Fatalf("FormatGuidance() error: %v", err)
+	}
+
+	var parsed map[string]interface{}
+	if err := json.Unmarshal([]byte(out), &parsed); err != nil {
+		t.Fatalf("output is not valid JSON: %v", err)
+	}
+
+	if _, exists := parsed["reflections"]; exists {
+		t.Error("reflections should be omitted from JSON when empty")
+	}
+}
+
+func TestFormatGuidanceTextNoReflectionsSection(t *testing.T) {
+	g := types.Guidance{
+		Phase:        types.PhaseRed,
+		Mode:         types.ModeGreenfield,
+		Instructions: []string{"write tests"},
+		Rules:        []string{"no impl"},
+	}
+
+	out, err := FormatGuidance(g, FormatText)
+	if err != nil {
+		t.Fatalf("FormatGuidance() error: %v", err)
+	}
+
+	if strings.Contains(out, "Reflections") {
+		t.Errorf("text output should not contain Reflections section when empty, got:\n%s", out)
+	}
+}
+
 func TestFormatStatusTextSortsByID(t *testing.T) {
 	s := types.NewSession()
 	// Add specs in a way that results in non-sequential order

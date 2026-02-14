@@ -84,6 +84,27 @@ func formatText(g types.Guidance) string {
 		b.WriteString("\n")
 	}
 
+	if len(g.Reflections) > 0 {
+		answered := 0
+		for _, r := range g.Reflections {
+			if r.Answer != "" {
+				answered++
+			}
+		}
+		fmt.Fprintf(&b, "Reflections (%d/%d answered):\n", answered, len(g.Reflections))
+		for _, r := range g.Reflections {
+			status := "pending"
+			if r.Answer != "" {
+				status = "answered"
+			}
+			fmt.Fprintf(&b, "  [%d] (%s) %s\n", r.ID, status, r.Question)
+			if r.Answer != "" {
+				fmt.Fprintf(&b, "      -> %q\n", r.Answer)
+			}
+		}
+		b.WriteString("\n")
+	}
+
 	return b.String()
 }
 
