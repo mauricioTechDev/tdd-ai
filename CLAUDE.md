@@ -30,6 +30,7 @@ go test ./internal/phase/ -v -run TestNext
 - `internal/session/` — Session persistence (read/write `.tdd-ai.json` in working directory)
 - `internal/phase/` — State machine: `Next()`, `NextWithMode()`, `ExpectedTestResult()`, `CanTransition()`
 - `internal/guide/` — Generates phase-specific instructions and rules based on current phase and mode
+- `internal/reflection/` — Default reflection questions and answer validation for the refactor phase
 - `internal/formatter/` — Formats output as text or JSON (`FormatGuidance`, `FormatStatus`, `FormatFullStatus`)
 
 ### Key Concepts
@@ -42,7 +43,9 @@ go test ./internal/phase/ -v -run TestNext
 - `greenfield` (default) — New code; RED expects tests to fail
 - `retrofit` (`--retrofit`) — Existing code; RED expects tests to pass, skips GREEN
 
-**Session File:** `.tdd-ai.json` in the working directory stores phase, mode, specs, test command, last test result, and event history.
+**Refactor Reflections:** During the refactor phase, 6 structured reflection questions are loaded. Agents must answer all questions (min 5 words each) before advancing. Use `tdd-ai refactor reflect <n> --answer "..."` to answer and `tdd-ai refactor status` to view progress.
+
+**Session File:** `.tdd-ai.json` in the working directory stores phase, mode, specs, test command, last test result, reflections, and event history.
 
 **Output Format:** All commands support `--format json` for machine-readable output. Format auto-detects: JSON when piped, text when in a terminal.
 

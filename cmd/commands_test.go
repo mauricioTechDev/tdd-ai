@@ -69,6 +69,7 @@ func TestCommandsIncludesAllCommands(t *testing.T) {
 		"init", "spec add", "spec list", "spec done",
 		"phase", "phase next", "phase set",
 		"guide", "test", "complete", "status", "reset", "version",
+		"refactor", "refactor reflect", "refactor status",
 	}
 
 	commandNames := make(map[string]bool)
@@ -117,8 +118,8 @@ func TestCommandsFlagsPresent(t *testing.T) {
 func TestCommandsWorkflowSteps(t *testing.T) {
 	steps := workflowSteps()
 
-	if len(steps) != 8 {
-		t.Errorf("workflow should have 8 steps, got %d", len(steps))
+	if len(steps) != 9 {
+		t.Errorf("workflow should have 9 steps, got %d", len(steps))
 	}
 
 	if !strings.Contains(steps[0], "init") {
@@ -127,6 +128,17 @@ func TestCommandsWorkflowSteps(t *testing.T) {
 
 	if !strings.Contains(steps[len(steps)-1], "complete") {
 		t.Error("last workflow step should mention complete")
+	}
+
+	foundReflect := false
+	for _, step := range steps {
+		if strings.Contains(step, "refactor reflect") {
+			foundReflect = true
+			break
+		}
+	}
+	if !foundReflect {
+		t.Error("workflow should include refactor reflect step")
 	}
 }
 

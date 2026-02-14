@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/macosta/tdd-ai/internal/phase"
+	"github.com/macosta/tdd-ai/internal/reflection"
 	"github.com/macosta/tdd-ai/internal/session"
 	"github.com/macosta/tdd-ai/internal/types"
 	"github.com/spf13/cobra"
@@ -74,6 +75,12 @@ Use --test-result to validate that tests are in the expected state before advanc
 			fmt.Fprintf(cmd.ErrOrStderr(), "Warning: advancing without test result. The %s phase expects tests to %s.\n", current, expected)
 		}
 
+		// Block advancing from refactor when reflection questions are unanswered
+		if current == types.PhaseRefactor && len(s.Reflections) > 0 && !s.AllReflectionsAnswered() {
+			pending := s.PendingReflections()
+			return fmt.Errorf("cannot advance: %d reflection question(s) unanswered. Use 'tdd-ai refactor status' to see them", len(pending))
+		}
+
 		// Clear last test result after consuming it
 		if s.LastTestResult != "" {
 			s.LastTestResult = ""
@@ -85,6 +92,9 @@ Use --test-result to validate that tests are in the expected state before advanc
 		}
 
 		s.Phase = next
+		if next == types.PhaseRefactor {
+			s.Reflections = reflection.DefaultQuestions()
+		}
 		s.AddEvent("phase_next", func(e *types.Event) {
 			e.From = string(current)
 			e.To = string(next)
@@ -129,6 +139,9 @@ var phaseSetCmd = &cobra.Command{
 
 		old := s.Phase
 		s.Phase = p
+		if p == types.PhaseRefactor && len(s.Reflections) == 0 {
+			s.Reflections = reflection.DefaultQuestions()
+		}
 		s.AddEvent("phase_set", func(e *types.Event) {
 			e.From = string(old)
 			e.To = string(p)

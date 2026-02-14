@@ -327,6 +327,84 @@ func TestRetrofitRedInstructionsMentionAutoConsume(t *testing.T) {
 	}
 }
 
+func TestGenerateRefactorPhaseWithPendingReflections(t *testing.T) {
+	s := types.NewSession()
+	s.Phase = types.PhaseRefactor
+	s.Reflections = []types.ReflectionQuestion{
+		{ID: 1, Question: "Q1", Answer: ""},
+		{ID: 2, Question: "Q2", Answer: ""},
+	}
+
+	g := Generate(s)
+
+	if len(g.Reflections) != 2 {
+		t.Errorf("guidance reflections length = %d, want 2", len(g.Reflections))
+	}
+
+	foundRequired := false
+	foundViewCmd := false
+	foundAnswerCmd := false
+	for _, inst := range g.Instructions {
+		if contains(inst, "REQUIRED") && contains(inst, "reflection") {
+			foundRequired = true
+		}
+		if contains(inst, "tdd-ai refactor status") {
+			foundViewCmd = true
+		}
+		if contains(inst, "tdd-ai refactor reflect") {
+			foundAnswerCmd = true
+		}
+	}
+	if !foundRequired {
+		t.Error("refactor instructions should mention REQUIRED reflection questions when pending")
+	}
+	if !foundViewCmd {
+		t.Error("refactor instructions should mention 'tdd-ai refactor status' when pending")
+	}
+	if !foundAnswerCmd {
+		t.Error("refactor instructions should mention 'tdd-ai refactor reflect' when pending")
+	}
+}
+
+func TestGenerateRefactorPhaseAllReflectionsAnswered(t *testing.T) {
+	s := types.NewSession()
+	s.Phase = types.PhaseRefactor
+	s.Reflections = []types.ReflectionQuestion{
+		{ID: 1, Question: "Q1", Answer: "answered with enough words here"},
+		{ID: 2, Question: "Q2", Answer: "also answered with enough words here"},
+	}
+
+	g := Generate(s)
+
+	foundReady := false
+	for _, inst := range g.Instructions {
+		if contains(inst, "All reflection questions answered") {
+			foundReady = true
+		}
+	}
+	if !foundReady {
+		t.Error("refactor instructions should say 'All reflection questions answered' when all answered")
+	}
+}
+
+func TestGenerateRefactorPhaseNoReflections(t *testing.T) {
+	s := types.NewSession()
+	s.Phase = types.PhaseRefactor
+	// No reflections loaded (backward compat)
+
+	g := Generate(s)
+
+	if len(g.Reflections) != 0 {
+		t.Errorf("guidance reflections should be empty when not loaded, got %d", len(g.Reflections))
+	}
+
+	for _, inst := range g.Instructions {
+		if contains(inst, "REQUIRED") && contains(inst, "reflection") {
+			t.Error("should not mention required reflections when none loaded")
+		}
+	}
+}
+
 func TestGenerateOnlyShowsActiveSpecs(t *testing.T) {
 	s := types.NewSession()
 	s.AddSpec("active spec")

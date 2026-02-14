@@ -125,8 +125,9 @@ func workflowSteps() []string {
 		"4. Write code following the instructions",
 		"5. tdd-ai test (run tests and record result)",
 		"6. tdd-ai phase next (advance when phase criteria met)",
-		"7. Repeat steps 3-6 for red -> green -> refactor",
-		"8. tdd-ai complete (finish cycle, mark all specs done)",
+		"7. In refactor: tdd-ai refactor reflect <n> --answer \"...\" (answer all reflection questions)",
+		"8. Repeat steps 3-7 for red -> green -> refactor",
+		"9. tdd-ai complete (finish cycle, mark all specs done)",
 	}
 }
 

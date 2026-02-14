@@ -53,7 +53,12 @@ tdd-ai guide
 # 6. After implementation passes all tests, advance
 tdd-ai phase next --test-result pass
 
-# 7. Refactor, then finish the cycle in one step
+# 7. In refactor phase, answer reflection questions
+tdd-ai refactor status
+tdd-ai refactor reflect 1 --answer "Tests are already descriptive and clear enough"
+# ... answer all 6 questions ...
+
+# 8. Finish the cycle
 tdd-ai complete
 ```
 
@@ -74,6 +79,9 @@ tdd-ai complete
 | `tdd-ai phase set <phase>` | Manually set phase (red/green/refactor/done) |
 | `tdd-ai guide` | Get phase-appropriate instructions |
 | `tdd-ai test` | Run configured test command and record result |
+| `tdd-ai refactor` | Show refactor reflection status |
+| `tdd-ai refactor reflect <n> --answer "..."` | Answer a reflection question |
+| `tdd-ai refactor status` | Show all reflection questions with status |
 | `tdd-ai complete` | Finish TDD cycle (advance to done + mark specs complete) |
 | `tdd-ai status` | Full session overview (phase, mode, specs, next action) |
 | `tdd-ai reset` | Clear session and start over |
@@ -215,6 +223,7 @@ Key rules:
 - In red phase: write tests only, verify they fail, do NOT write implementation
 - In green phase: write minimal implementation, do NOT modify tests
 - In refactor phase: improve code quality, run tests after every change
+- In refactor phase: answer all 6 reflection questions with `tdd-ai refactor reflect`
 - NEVER skip a phase
 ```
 
@@ -358,6 +367,10 @@ Developer: "Implement a rate limiter with sliding window"
                     v
      Agent refactors
      Agent runs: npm test after each change
+     Agent runs: tdd-ai refactor status
+     Agent answers all 6 reflection questions:
+       tdd-ai refactor reflect 1 --answer "Tests clearly describe behavior"
+       ... (all 6 questions) ...
      Agent runs: tdd-ai complete
                     |
                     v

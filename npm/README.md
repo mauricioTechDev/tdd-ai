@@ -47,7 +47,12 @@ tdd-ai guide --format json
 # 6. After implementation passes all tests, advance
 tdd-ai phase next --test-result pass
 
-# 7. Refactor, then finish the cycle
+# 7. In refactor phase, answer reflection questions
+tdd-ai refactor status
+tdd-ai refactor reflect 1 --answer "Tests are already descriptive and clear enough"
+# ... answer all 6 questions ...
+
+# 8. Finish the cycle
 tdd-ai complete
 ```
 
@@ -180,6 +185,9 @@ tdd-ai init --retrofit
 | `tdd-ai guide` | Get phase-appropriate instructions |
 | `tdd-ai phase next` | Advance to next phase |
 | `tdd-ai test` | Run configured test command |
+| `tdd-ai refactor` | Show refactor reflection status |
+| `tdd-ai refactor reflect <n> --answer "..."` | Answer a reflection question |
+| `tdd-ai refactor status` | Show all reflection questions with status |
 | `tdd-ai complete` | Finish TDD cycle |
 | `tdd-ai status` | Full session overview |
 

@@ -1,6 +1,8 @@
 package guide
 
 import (
+	"fmt"
+
 	"github.com/macosta/tdd-ai/internal/phase"
 	"github.com/macosta/tdd-ai/internal/types"
 )
@@ -39,8 +41,9 @@ func Generate(s *types.Session) types.Guidance {
 			g.Rules = greenRules()
 		}
 	case types.PhaseRefactor:
-		g.Instructions = refactorInstructions()
+		g.Instructions = refactorInstructions(s)
 		g.Rules = refactorRules()
+		g.Reflections = s.Reflections
 	case types.PhaseDone:
 		g.Instructions = doneInstructions()
 		g.Rules = nil
@@ -84,15 +87,31 @@ func greenRules() []string {
 	}
 }
 
-func refactorInstructions() []string {
-	return []string{
+func refactorInstructions(s *types.Session) []string {
+	instructions := []string{
 		"Improve code quality: naming, structure, DRY, performance.",
 		"Run tests after EVERY change to ensure they still pass.",
 		"Do NOT add new functionality.",
 		"Do NOT modify test assertions.",
+	}
+
+	if len(s.Reflections) > 0 && !s.AllReflectionsAnswered() {
+		pending := s.PendingReflections()
+		instructions = append(instructions,
+			fmt.Sprintf("REQUIRED: Answer all 6 reflection questions before advancing. %d remaining.", len(pending)),
+			"View questions: tdd-ai refactor status",
+			"Answer a question: tdd-ai refactor reflect <number> --answer \"your response\"",
+		)
+	} else if len(s.Reflections) > 0 && s.AllReflectionsAnswered() {
+		instructions = append(instructions, "All reflection questions answered. Ready to advance.")
+	}
+
+	instructions = append(instructions,
 		"When satisfied with code quality, run: tdd-ai test && tdd-ai phase next (test result is stored and auto-used)",
 		"Or finish the entire cycle in one step: tdd-ai complete (uses cached test result if available, or pass --test-result pass to skip re-running tests)",
-	}
+	)
+
+	return instructions
 }
 
 func refactorRules() []string {
