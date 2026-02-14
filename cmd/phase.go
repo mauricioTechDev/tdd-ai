@@ -17,7 +17,7 @@ var phaseCmd = &cobra.Command{
 	Example: `  tdd-ai phase
   tdd-ai phase next
   tdd-ai phase set green`,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(cmd *cobra.Command, _ []string) error {
 		dir := getWorkDir()
 		s, err := session.LoadOrFail(dir)
 		if err != nil {
@@ -39,7 +39,7 @@ var phaseNextCmd = &cobra.Command{
 Use --test-result to validate that tests are in the expected state before advancing.`,
 	Example: `  tdd-ai phase next
   tdd-ai phase next --test-result fail`,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(cmd *cobra.Command, _ []string) error {
 		dir := getWorkDir()
 		s, err := session.LoadOrFail(dir)
 		if err != nil {

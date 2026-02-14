@@ -57,7 +57,7 @@ var specListCmd = &cobra.Command{
 	Long:  "Display all specs in the current session with their status (active or done).",
 	Example: `  tdd-ai spec list
   tdd-ai spec list --format json`,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(cmd *cobra.Command, _ []string) error {
 		dir := getWorkDir()
 		s, err := session.LoadOrFail(dir)
 		if err != nil {

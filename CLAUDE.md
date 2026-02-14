@@ -8,9 +8,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 make build        # Build binary to bin/tdd-ai (injects version via ldflags)
 make test         # Run all tests: go test ./... -v
 make test-short   # Run tests without I/O: go test ./... -short
-make lint         # Static analysis: go vet ./...
+make lint         # Lint with golangci-lint (errcheck, staticcheck, gocritic, revive, etc.)
+make coverage     # Run tests with race detector and print per-function coverage
 make install      # Copy binary to ~/go/bin/
-make clean        # Remove bin/ directory
+make clean        # Remove bin/ and coverage.out
 ```
 
 Run a single package's tests:

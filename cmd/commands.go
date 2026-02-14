@@ -56,7 +56,7 @@ workflow, global flags, and current session state (if any).
 Designed for AI agents to learn the full API in a single call.`,
 	Example: `  tdd-ai commands
   tdd-ai commands --format json`,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(cmd *cobra.Command, _ []string) error {
 		output := buildCommandsOutput()
 
 		f := formatter.Format(formatFlag)

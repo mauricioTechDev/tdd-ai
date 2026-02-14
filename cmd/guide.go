@@ -18,7 +18,7 @@ Use --format json for machine-readable output that AI agents can parse.
 Use --format text (default) for human-readable output.`,
 	Example: `  tdd-ai guide
   tdd-ai guide --format json`,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(cmd *cobra.Command, _ []string) error {
 		dir := getWorkDir()
 		s, err := session.LoadOrFail(dir)
 		if err != nil {

@@ -26,7 +26,7 @@ var completeCmd = &cobra.Command{
 This is the "I'm done, wrap it up" command.`,
 	Example: `  tdd-ai complete
   tdd-ai complete --test-result pass`,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(cmd *cobra.Command, _ []string) error {
 		dir := getWorkDir()
 		s, err := session.LoadOrFail(dir)
 		if err != nil {
