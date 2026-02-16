@@ -146,10 +146,55 @@ var specDoneCmd = &cobra.Command{
 	},
 }
 
+var specPickCmd = &cobra.Command{
+	Use:   "pick <id>",
+	Short: "Pick a spec to work on in this iteration",
+	Long:  "Select an active spec to focus on for the current RED-GREEN-REFACTOR iteration.",
+	Example: `  tdd-ai spec pick 1
+  tdd-ai spec pick 3`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		dir := getWorkDir()
+		s, err := session.LoadOrFail(dir)
+		if err != nil {
+			return err
+		}
+
+		if s.Phase != types.PhaseRed {
+			return fmt.Errorf("can only pick a spec during the RED phase (current phase: %s)", s.Phase)
+		}
+
+		id, err := strconv.Atoi(args[0])
+		if err != nil {
+			return fmt.Errorf("spec ID must be a number, got %q", args[0])
+		}
+
+		if err := s.SetCurrentSpec(id); err != nil {
+			return err
+		}
+
+		s.AddEvent("spec_picked", func(e *types.Event) {
+			e.SpecID = id
+		})
+
+		if err := session.Save(dir, s); err != nil {
+			return err
+		}
+
+		spec := s.CurrentSpec()
+		remaining := s.RemainingSpecs()
+		fmt.Fprintf(cmd.OutOrStdout(), "Picked spec [%d]: %s\n", spec.ID, spec.Description)
+		fmt.Fprintf(cmd.OutOrStdout(), "%d spec(s) remaining after this one\n", len(remaining))
+		fmt.Fprintln(cmd.OutOrStdout(), "Next: run 'tdd-ai guide --format json' for phase instructions")
+		return nil
+	},
+}
+
 func init() {
 	specDoneCmd.Flags().BoolVar(&specDoneAll, "all", false, "mark all active specs as done")
 	specCmd.AddCommand(specAddCmd)
 	specCmd.AddCommand(specListCmd)
 	specCmd.AddCommand(specDoneCmd)
+	specCmd.AddCommand(specPickCmd)
 	rootCmd.AddCommand(specCmd)
 }

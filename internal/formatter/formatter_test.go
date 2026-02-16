@@ -570,6 +570,127 @@ func TestFormatGuidanceTextNoReflectionsSection(t *testing.T) {
 	}
 }
 
+func TestFormatGuidanceTextShowsCurrentSpec(t *testing.T) {
+	g := types.Guidance{
+		Phase:       types.PhaseRed,
+		Mode:        types.ModeGreenfield,
+		CurrentSpec: &types.Spec{ID: 2, Description: "my current spec", Status: types.SpecStatusActive},
+		Iteration:   3,
+		Specs: []types.Spec{
+			{ID: 2, Description: "my current spec", Status: types.SpecStatusActive},
+		},
+		Instructions: []string{"write tests"},
+		Rules:        []string{"no impl"},
+	}
+
+	out, err := FormatGuidance(g, FormatText)
+	if err != nil {
+		t.Fatalf("FormatGuidance() error: %v", err)
+	}
+
+	if !strings.Contains(out, "Current Spec: [2] my current spec") {
+		t.Errorf("text output should show current spec, got:\n%s", out)
+	}
+	if !strings.Contains(out, "Iteration: 3") {
+		t.Errorf("text output should show iteration, got:\n%s", out)
+	}
+}
+
+func TestFormatGuidanceJSONIncludesCurrentSpec(t *testing.T) {
+	g := types.Guidance{
+		Phase:        types.PhaseRed,
+		Mode:         types.ModeGreenfield,
+		CurrentSpec:  &types.Spec{ID: 1, Description: "test spec", Status: types.SpecStatusActive},
+		Iteration:    2,
+		TotalSpecs:   3,
+		Specs:        []types.Spec{},
+		Instructions: []string{"write tests"},
+		Rules:        []string{"no impl"},
+	}
+
+	out, err := FormatGuidance(g, FormatJSON)
+	if err != nil {
+		t.Fatalf("FormatGuidance() error: %v", err)
+	}
+
+	var parsed map[string]interface{}
+	if err := json.Unmarshal([]byte(out), &parsed); err != nil {
+		t.Fatalf("output is not valid JSON: %v", err)
+	}
+	if parsed["iteration"] != float64(2) {
+		t.Errorf("iteration = %v, want 2", parsed["iteration"])
+	}
+	if parsed["total_specs"] != float64(3) {
+		t.Errorf("total_specs = %v, want 3", parsed["total_specs"])
+	}
+	cs, ok := parsed["current_spec"].(map[string]interface{})
+	if !ok {
+		t.Fatal("current_spec should be present in JSON output")
+	}
+	if cs["id"] != float64(1) {
+		t.Errorf("current_spec.id = %v, want 1", cs["id"])
+	}
+}
+
+func TestFormatFullStatusIncludesCurrentSpecAndIteration(t *testing.T) {
+	s := types.NewSession()
+	s.AddSpec("feature A")
+	s.AddSpec("feature B")
+	_ = s.SetCurrentSpec(1)
+	s.Iteration = 2
+
+	jsonOut, err := FormatFullStatus(s, FormatJSON)
+	if err != nil {
+		t.Fatalf("FormatFullStatus(json) error: %v", err)
+	}
+
+	var parsed map[string]interface{}
+	if err := json.Unmarshal([]byte(jsonOut), &parsed); err != nil {
+		t.Fatalf("output is not valid JSON: %v", err)
+	}
+	if parsed["current_spec_id"] != float64(1) {
+		t.Errorf("current_spec_id = %v, want 1", parsed["current_spec_id"])
+	}
+	if parsed["iteration"] != float64(2) {
+		t.Errorf("iteration = %v, want 2", parsed["iteration"])
+	}
+
+	textOut, err := FormatFullStatus(s, FormatText)
+	if err != nil {
+		t.Fatalf("FormatFullStatus(text) error: %v", err)
+	}
+	if !strings.Contains(textOut, "Current Spec: [1] feature A") {
+		t.Errorf("text output should show current spec, got:\n%s", textOut)
+	}
+	if !strings.Contains(textOut, "Iteration: 2") {
+		t.Errorf("text output should show iteration, got:\n%s", textOut)
+	}
+}
+
+func TestFormatStatusTextMarksCurrentSpec(t *testing.T) {
+	s := types.NewSession()
+	s.AddSpec("first")
+	s.AddSpec("second")
+	s.AddSpec("third")
+	_ = s.SetCurrentSpec(2)
+
+	out, err := FormatStatus(s, FormatText)
+	if err != nil {
+		t.Fatalf("FormatStatus() error: %v", err)
+	}
+
+	if !strings.Contains(out, "→ [2]") {
+		t.Errorf("should mark current spec with arrow, got:\n%s", out)
+	}
+	if !strings.Contains(out, "(current)") {
+		t.Errorf("should mark current spec with (current), got:\n%s", out)
+	}
+	// Non-current specs should not have the arrow
+	if strings.Contains(out, "→ [1]") {
+		t.Errorf("non-current spec should not have arrow, got:\n%s", out)
+	}
+}
+
 func TestFormatStatusTextSortsByID(t *testing.T) {
 	s := types.NewSession()
 	// Add specs in a way that results in non-sequential order

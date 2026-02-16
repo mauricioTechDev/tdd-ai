@@ -1,13 +1,28 @@
 package reflection
 
 import (
+	"strings"
 	"testing"
 )
 
-func TestDefaultQuestionsReturns6(t *testing.T) {
+func TestDefaultQuestionsReturns7(t *testing.T) {
 	questions := DefaultQuestions()
-	if len(questions) != 6 {
-		t.Errorf("DefaultQuestions() returned %d questions, want 6", len(questions))
+	if len(questions) != 7 {
+		t.Errorf("DefaultQuestions() returned %d questions, want 7", len(questions))
+	}
+}
+
+func TestDefaultQuestionsIncludesTestDiscovery(t *testing.T) {
+	questions := DefaultQuestions()
+	found := false
+	for _, q := range questions {
+		if strings.Contains(q.Question, "new test scenarios") {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("DefaultQuestions() should include a test-discovery question about new test scenarios")
 	}
 }
 

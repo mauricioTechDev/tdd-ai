@@ -66,7 +66,7 @@ func TestCommandsIncludesAllCommands(t *testing.T) {
 	output := buildCommandsOutput()
 
 	expectedCommands := []string{
-		"init", "spec add", "spec list", "spec done",
+		"init", "spec add", "spec list", "spec done", "spec pick",
 		"phase", "phase next", "phase set",
 		"guide", "test", "complete", "status", "reset", "version",
 		"refactor", "refactor reflect", "refactor status",
@@ -118,8 +118,8 @@ func TestCommandsFlagsPresent(t *testing.T) {
 func TestCommandsWorkflowSteps(t *testing.T) {
 	steps := workflowSteps()
 
-	if len(steps) != 9 {
-		t.Errorf("workflow should have 9 steps, got %d", len(steps))
+	if len(steps) != 10 {
+		t.Errorf("workflow should have 10 steps, got %d", len(steps))
 	}
 
 	if !strings.Contains(steps[0], "init") {

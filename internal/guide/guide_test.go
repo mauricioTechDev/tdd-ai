@@ -85,6 +85,7 @@ func TestGenerateRetrofitRedPhase(t *testing.T) {
 	s := types.NewSession()
 	s.Mode = types.ModeRetrofit
 	s.AddSpec("GET /users returns 200")
+	_ = s.SetCurrentSpec(1)
 
 	g := Generate(s)
 
@@ -98,19 +99,19 @@ func TestGenerateRetrofitRedPhase(t *testing.T) {
 		t.Fatal("retrofit red phase should have instructions")
 	}
 
-	// Retrofit red instructions should mention writing NEW tests per spec
+	// Retrofit red instructions should reference the current spec
 	foundNewTest := false
 	foundPass := false
 	foundGreenSkipped := false
-	foundEachSpec := false
+	foundSpecRef := false
 	for _, inst := range g.Instructions {
 		if contains(inst, "NEW test") {
 			foundNewTest = true
 		}
-		if contains(inst, "EACH") && contains(inst, "spec") {
-			foundEachSpec = true
+		if contains(inst, "spec [1]") {
+			foundSpecRef = true
 		}
-		if contains(inst, "PASS") {
+		if contains(inst, "PASSES") {
 			foundPass = true
 		}
 		if contains(inst, "GREEN is skipped") {
@@ -120,8 +121,8 @@ func TestGenerateRetrofitRedPhase(t *testing.T) {
 	if !foundNewTest {
 		t.Error("retrofit red instructions should mention writing 'NEW test'")
 	}
-	if !foundEachSpec {
-		t.Error("retrofit red instructions should mention 'EACH' spec")
+	if !foundSpecRef {
+		t.Error("retrofit red instructions should reference the current spec by ID")
 	}
 	if !foundPass {
 		t.Error("retrofit red instructions should mention tests PASS (not fail)")
@@ -219,6 +220,7 @@ func TestGenerateOmitsTestCmdWhenEmpty(t *testing.T) {
 func TestRedInstructionsMentionAutoConsume(t *testing.T) {
 	s := types.NewSession()
 	s.AddSpec("feature")
+	_ = s.SetCurrentSpec(1)
 
 	g := Generate(s)
 
@@ -312,6 +314,7 @@ func TestRetrofitRedInstructionsMentionAutoConsume(t *testing.T) {
 	s := types.NewSession()
 	s.Mode = types.ModeRetrofit
 	s.AddSpec("existing feature")
+	_ = s.SetCurrentSpec(1)
 
 	g := Generate(s)
 
@@ -402,6 +405,125 @@ func TestGenerateRefactorPhaseNoReflections(t *testing.T) {
 		if contains(inst, "REQUIRED") && contains(inst, "reflection") {
 			t.Error("should not mention required reflections when none loaded")
 		}
+	}
+}
+
+func TestRedGuidanceReferencesCurrentSpec(t *testing.T) {
+	s := types.NewSession()
+	s.AddSpec("calculate shipping cost")
+	_ = s.SetCurrentSpec(1)
+
+	g := Generate(s)
+
+	found := false
+	for _, inst := range g.Instructions {
+		if contains(inst, "spec [1]") && contains(inst, "calculate shipping cost") {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("RED guidance should reference the current spec by ID and description")
+	}
+}
+
+func TestGreenGuidanceReferencesCurrentSpec(t *testing.T) {
+	s := types.NewSession()
+	s.AddSpec("calculate shipping cost")
+	_ = s.SetCurrentSpec(1)
+	s.Phase = types.PhaseGreen
+
+	g := Generate(s)
+
+	found := false
+	for _, inst := range g.Instructions {
+		if contains(inst, "spec [1]") {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("GREEN guidance should reference the current spec")
+	}
+}
+
+func TestRefactorGuidanceMentionsRemainingSpecs(t *testing.T) {
+	s := types.NewSession()
+	s.AddSpec("first")
+	s.AddSpec("second")
+	s.AddSpec("third")
+	_ = s.SetCurrentSpec(1)
+	s.Phase = types.PhaseRefactor
+	s.Reflections = []types.ReflectionQuestion{}
+
+	g := Generate(s)
+
+	foundRemaining := false
+	foundDiscovery := false
+	for _, inst := range g.Instructions {
+		if contains(inst, "2 spec(s) remaining") {
+			foundRemaining = true
+		}
+		if contains(inst, "tdd-ai spec add") {
+			foundDiscovery = true
+		}
+	}
+	if !foundRemaining {
+		t.Error("REFACTOR guidance should mention remaining specs count")
+	}
+	if !foundDiscovery {
+		t.Error("REFACTOR guidance should encourage test discovery with spec add")
+	}
+}
+
+func TestRedGuidanceTellsAgentToPickSpec(t *testing.T) {
+	s := types.NewSession()
+	s.AddSpec("first")
+	s.AddSpec("second")
+	// No current spec picked
+
+	g := Generate(s)
+
+	found := false
+	for _, inst := range g.Instructions {
+		if contains(inst, "tdd-ai spec pick") {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("RED guidance should tell agent to pick a spec when none is selected")
+	}
+}
+
+func TestGeneratePopulatesCurrentSpec(t *testing.T) {
+	s := types.NewSession()
+	s.AddSpec("my feature")
+	_ = s.SetCurrentSpec(1)
+
+	g := Generate(s)
+
+	if g.CurrentSpec == nil {
+		t.Fatal("CurrentSpec should be populated when a spec is selected")
+	}
+	if g.CurrentSpec.ID != 1 {
+		t.Errorf("CurrentSpec.ID = %d, want 1", g.CurrentSpec.ID)
+	}
+}
+
+func TestGeneratePopulatesIterationAndTotalSpecs(t *testing.T) {
+	s := types.NewSession()
+	s.AddSpec("a")
+	s.AddSpec("b")
+	s.Iteration = 3
+
+	g := Generate(s)
+
+	if g.Iteration != 3 {
+		t.Errorf("Iteration = %d, want 3", g.Iteration)
+	}
+	if g.TotalSpecs != 2 {
+		t.Errorf("TotalSpecs = %d, want 2", g.TotalSpecs)
 	}
 }
 

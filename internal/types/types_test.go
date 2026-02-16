@@ -355,3 +355,151 @@ func TestAnswerReflectionNotFound(t *testing.T) {
 		t.Error("AnswerReflection(99) should return error for nonexistent ID")
 	}
 }
+
+func TestCurrentSpecReturnsMatchingSpec(t *testing.T) {
+	s := NewSession()
+	s.AddSpec("first")
+	s.AddSpec("second")
+	id := 2
+	s.CurrentSpecID = &id
+
+	spec := s.CurrentSpec()
+	if spec == nil {
+		t.Fatal("CurrentSpec() should return non-nil when CurrentSpecID is set")
+	}
+	if spec.ID != 2 {
+		t.Errorf("CurrentSpec().ID = %d, want 2", spec.ID)
+	}
+	if spec.Description != "second" {
+		t.Errorf("CurrentSpec().Description = %q, want %q", spec.Description, "second")
+	}
+}
+
+func TestCurrentSpecReturnsNilWhenNoIDSet(t *testing.T) {
+	s := NewSession()
+	s.AddSpec("first")
+
+	if s.CurrentSpec() != nil {
+		t.Error("CurrentSpec() should return nil when CurrentSpecID is nil")
+	}
+}
+
+func TestCurrentSpecReturnsNilWhenIDNotFound(t *testing.T) {
+	s := NewSession()
+	s.AddSpec("first")
+	id := 99
+	s.CurrentSpecID = &id
+
+	if s.CurrentSpec() != nil {
+		t.Error("CurrentSpec() should return nil when ID doesn't match any spec")
+	}
+}
+
+func TestSetCurrentSpecValid(t *testing.T) {
+	s := NewSession()
+	s.AddSpec("first")
+	s.AddSpec("second")
+
+	err := s.SetCurrentSpec(2)
+	if err != nil {
+		t.Fatalf("SetCurrentSpec(2) unexpected error: %v", err)
+	}
+	if s.CurrentSpecID == nil || *s.CurrentSpecID != 2 {
+		t.Errorf("CurrentSpecID = %v, want 2", s.CurrentSpecID)
+	}
+}
+
+func TestSetCurrentSpecNotFound(t *testing.T) {
+	s := NewSession()
+	s.AddSpec("first")
+
+	err := s.SetCurrentSpec(99)
+	if err == nil {
+		t.Error("SetCurrentSpec(99) should return error for nonexistent spec")
+	}
+}
+
+func TestSetCurrentSpecNotActive(t *testing.T) {
+	s := NewSession()
+	s.AddSpec("done")
+	_ = s.CompleteSpec(1)
+
+	err := s.SetCurrentSpec(1)
+	if err == nil {
+		t.Error("SetCurrentSpec(1) should return error for completed spec")
+	}
+}
+
+func TestCompleteCurrentSpec(t *testing.T) {
+	s := NewSession()
+	s.AddSpec("to complete")
+	_ = s.SetCurrentSpec(1)
+
+	err := s.CompleteCurrentSpec()
+	if err != nil {
+		t.Fatalf("CompleteCurrentSpec() unexpected error: %v", err)
+	}
+	if s.CurrentSpecID != nil {
+		t.Error("CurrentSpecID should be nil after CompleteCurrentSpec")
+	}
+	if s.Specs[0].Status != SpecStatusCompleted {
+		t.Errorf("spec status = %q, want %q", s.Specs[0].Status, SpecStatusCompleted)
+	}
+}
+
+func TestCompleteCurrentSpecNoneSelected(t *testing.T) {
+	s := NewSession()
+	s.AddSpec("no current")
+
+	err := s.CompleteCurrentSpec()
+	if err == nil {
+		t.Error("CompleteCurrentSpec() should return error when no current spec")
+	}
+}
+
+func TestRemainingSpecsExcludesCurrent(t *testing.T) {
+	s := NewSession()
+	s.AddSpec("first")
+	s.AddSpec("second")
+	s.AddSpec("third")
+	_ = s.SetCurrentSpec(2)
+
+	remaining := s.RemainingSpecs()
+	if len(remaining) != 2 {
+		t.Fatalf("RemainingSpecs() = %d, want 2", len(remaining))
+	}
+	if remaining[0].ID != 1 {
+		t.Errorf("RemainingSpecs()[0].ID = %d, want 1", remaining[0].ID)
+	}
+	if remaining[1].ID != 3 {
+		t.Errorf("RemainingSpecs()[1].ID = %d, want 3", remaining[1].ID)
+	}
+}
+
+func TestRemainingSpecsExcludesCompleted(t *testing.T) {
+	s := NewSession()
+	s.AddSpec("first")
+	s.AddSpec("second")
+	s.AddSpec("third")
+	_ = s.CompleteSpec(1)
+	_ = s.SetCurrentSpec(2)
+
+	remaining := s.RemainingSpecs()
+	if len(remaining) != 1 {
+		t.Fatalf("RemainingSpecs() = %d, want 1", len(remaining))
+	}
+	if remaining[0].ID != 3 {
+		t.Errorf("RemainingSpecs()[0].ID = %d, want 3", remaining[0].ID)
+	}
+}
+
+func TestRemainingSpecsNoCurrent(t *testing.T) {
+	s := NewSession()
+	s.AddSpec("first")
+	s.AddSpec("second")
+
+	remaining := s.RemainingSpecs()
+	if len(remaining) != 2 {
+		t.Fatalf("RemainingSpecs() with no current = %d, want 2", len(remaining))
+	}
+}

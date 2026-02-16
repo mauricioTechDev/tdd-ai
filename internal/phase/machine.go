@@ -52,8 +52,25 @@ func ExpectedTestResult(p types.Phase, mode types.Mode) string {
 	return "pass"
 }
 
+// NextInLoop returns the next phase considering the per-spec loop.
+// At REFACTOR: returns RED if specs remain, DONE if empty.
+// For all other phases, behaves like NextWithMode.
+func NextInLoop(current types.Phase, mode types.Mode, hasRemainingSpecs bool) (types.Phase, error) {
+	if current == types.PhaseRefactor && hasRemainingSpecs {
+		return types.PhaseRed, nil
+	}
+	return NextWithMode(current, mode)
+}
+
 // CanTransition checks whether moving from one phase to another is valid.
 func CanTransition(from, to types.Phase) bool {
-	next, ok := transitions[from]
-	return ok && next == to
+	// Standard greenfield transitions
+	if next, ok := transitions[from]; ok && next == to {
+		return true
+	}
+	// Loop transition: refactor -> red
+	if from == types.PhaseRefactor && to == types.PhaseRed {
+		return true
+	}
+	return false
 }
