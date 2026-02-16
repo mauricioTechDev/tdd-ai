@@ -30,6 +30,16 @@ Before committing or pushing code, ALWAYS run:
 
 Do NOT commit or push if `make ci` fails. Fix issues first.
 
+## Automated Hooks
+
+Two Claude Code hooks enforce quality gates automatically:
+
+1. **Pre-commit hook** (`.claude/hooks/pre-commit-ci.sh`): Runs `gofmt -w .` and `make ci` before every `git commit`. Blocks the commit if CI fails.
+
+2. **Post-PR CI-wait hook** (`.claude/hooks/post-pr-ci-wait.sh`): After `gh pr create` or `git push` to a PR branch, waits for GitHub Actions CI to complete. Reports the result back — on failure, investigate and fix or report to the user.
+
+These hooks are registered in `.claude/settings.local.json` and run automatically.
+
 ## Architecture
 
 **tdd-ai** is a Go CLI tool that enforces TDD discipline for AI coding agents. It does NOT run tests itself — the AI agent runs tests using whatever framework the project uses. The tool provides a state machine, phase-appropriate guidance, and structured output.
