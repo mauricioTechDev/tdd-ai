@@ -198,8 +198,18 @@ async function main() {
   const ext = platform === "windows" ? ".exe" : "";
   const binaryPath = path.join(binDir, BINARY_NAME + ext);
   if (fs.existsSync(binaryPath)) {
-    console.log(`tdd-ai binary already exists at ${binaryPath}`);
-    return;
+    try {
+      const out = execFileSync(binaryPath, ["version"], { encoding: "utf8" }).trim();
+      // Output format: "tdd-ai X.Y.Z"
+      const installedVersion = out.split(" ").pop();
+      if (installedVersion === version) {
+        console.log(`tdd-ai v${version} already installed at ${binaryPath}`);
+        return;
+      }
+      console.log(`Updating tdd-ai from v${installedVersion} to v${version}...`);
+    } catch {
+      console.log(`Existing binary at ${binaryPath} is invalid, re-downloading...`);
+    }
   }
 
   const url = getDownloadUrl(version, platform, arch);
