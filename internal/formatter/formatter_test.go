@@ -598,12 +598,12 @@ func TestFormatGuidanceTextShowsCurrentSpec(t *testing.T) {
 
 func TestFormatGuidanceJSONIncludesCurrentSpec(t *testing.T) {
 	g := types.Guidance{
-		Phase:       types.PhaseRed,
-		Mode:        types.ModeGreenfield,
-		CurrentSpec: &types.Spec{ID: 1, Description: "test spec", Status: types.SpecStatusActive},
-		Iteration:   2,
-		TotalSpecs:  3,
-		Specs:       []types.Spec{},
+		Phase:        types.PhaseRed,
+		Mode:         types.ModeGreenfield,
+		CurrentSpec:  &types.Spec{ID: 1, Description: "test spec", Status: types.SpecStatusActive},
+		Iteration:    2,
+		TotalSpecs:   3,
+		Specs:        []types.Spec{},
 		Instructions: []string{"write tests"},
 		Rules:        []string{"no impl"},
 	}

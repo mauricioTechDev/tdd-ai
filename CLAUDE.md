@@ -8,7 +8,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 make build        # Build binary to bin/tdd-ai (injects version via ldflags)
 make test         # Run all tests: go test ./... -v
 make test-short   # Run tests without I/O: go test ./... -short
+make test-race    # Run tests with race detector: go test -race ./...
 make lint         # Lint with golangci-lint (errcheck, staticcheck, gocritic, revive, etc.)
+make ci           # Run full CI suite locally: lint + test-race + build
 make coverage     # Run tests with race detector and print per-function coverage
 make install      # Copy binary to ~/go/bin/
 make clean        # Remove bin/ and coverage.out
@@ -18,6 +20,15 @@ Run a single package's tests:
 ```bash
 go test ./internal/phase/ -v -run TestNext
 ```
+
+## Pre-Commit Checklist
+
+Before committing or pushing code, ALWAYS run:
+
+1. `gofmt -w .` — Auto-format all Go files
+2. `make ci` — Run lint, tests (with race detector), and build
+
+Do NOT commit or push if `make ci` fails. Fix issues first.
 
 ## Architecture
 
