@@ -10,7 +10,7 @@ import (
 // MinAnswerWords is the minimum number of words required for a valid reflection answer.
 const MinAnswerWords = 5
 
-// DefaultQuestions returns the 6 structured reflection questions with sequential IDs.
+// DefaultQuestions returns the 7 structured reflection questions with sequential IDs.
 func DefaultQuestions() []types.ReflectionQuestion {
 	return []types.ReflectionQuestion{
 		{ID: 1, Question: "Can I make my test suite more expressive?"},
@@ -19,6 +19,7 @@ func DefaultQuestions() []types.ReflectionQuestion {
 		{ID: 4, Question: "Can I reduce duplication in my test suite or implementation code?"},
 		{ID: 5, Question: "Can I make my implementation code more descriptive?"},
 		{ID: 6, Question: "Can I implement something more efficiently?"},
+		{ID: 7, Question: "Should any new test scenarios be added to the test list based on what I learned?"},
 	}
 }
 

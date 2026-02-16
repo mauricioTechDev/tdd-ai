@@ -35,25 +35,28 @@ tdd-ai init --test-cmd "npm test"
 # 2. Define what to build
 tdd-ai spec add "Calculate shipping cost based on weight" "Free shipping over $50"
 
-# 3. Get instructions for the current phase (starts at red)
+# 3. Pick a spec to work on
+tdd-ai spec pick 1
+
+# 4. Get instructions for the current phase (starts at red)
 tdd-ai guide --format json
 
-# 4. After writing tests and confirming they fail, advance
+# 5. After writing tests and confirming they fail, advance
 tdd-ai phase next --test-result fail
 
-# 5. Get green phase instructions
+# 6. Get green phase instructions, write minimal implementation
 tdd-ai guide --format json
 
-# 6. After implementation passes all tests, advance
+# 7. After implementation passes all tests, advance
 tdd-ai phase next --test-result pass
 
-# 7. In refactor phase, answer reflection questions
+# 8. In refactor phase, answer reflection questions
 tdd-ai refactor status
 tdd-ai refactor reflect 1 --answer "Tests are already descriptive and clear enough"
-# ... answer all 6 questions ...
+# ... answer all 7 questions ...
 
-# 8. Finish the cycle
-tdd-ai complete
+# 9. Advance — loops back to RED for the next spec, or DONE if all specs are complete
+tdd-ai phase next --test-result pass
 ```
 
 ## Works With Any AI Coding Tool
@@ -75,11 +78,11 @@ When implementing any feature, use the tdd-ai CLI to follow strict TDD:
 
 1. Run `tdd-ai init` to start a session (skip if .tdd-ai.json already exists)
 2. Run `tdd-ai spec add "<requirement>"` for each requirement
-3. Run `tdd-ai guide --format json` to get phase instructions
-4. Follow the instructions and rules EXACTLY
-5. Run `tdd-ai phase next` when the current phase is complete
-6. Repeat steps 3-5 until the phase is "done"
-7. Run `tdd-ai spec done <id>` for each completed spec
+3. Run `tdd-ai spec pick <id>` to pick ONE spec to work on
+4. Run `tdd-ai guide --format json` to get phase instructions
+5. Follow the instructions and rules EXACTLY
+6. Run `tdd-ai phase next` when the current phase is complete
+7. Repeat steps 4-6 — after REFACTOR, the current spec is auto-completed and the loop continues
 ```
 
 ### GitHub Copilot
@@ -94,9 +97,10 @@ Before implementing any feature, follow this workflow:
 
 1. Run `tdd-ai init` if no session exists
 2. Add specs with `tdd-ai spec add "<requirement>"`
-3. Check `tdd-ai guide --format json` for phase-specific instructions
-4. Follow the instructions exactly -- do not skip phases
-5. Advance with `tdd-ai phase next` when each phase is complete
+3. Pick a spec with `tdd-ai spec pick <id>`
+4. Check `tdd-ai guide --format json` for phase-specific instructions
+5. Follow the instructions exactly -- do not skip phases
+6. Advance with `tdd-ai phase next` when each phase is complete
 ```
 
 ### Claude Code
@@ -144,11 +148,19 @@ The CLI guides the AI through each TDD phase with structured JSON output:
       "status": "active"
     }
   ],
+  "current_spec": {
+    "id": 1,
+    "description": "Calculate shipping cost based on weight",
+    "status": "active"
+  },
+  "iteration": 1,
+  "total_specs": 2,
   "instructions": [
-    "Write tests for the active specs.",
-    "Run the project's test command to verify ALL new tests FAIL.",
+    "Write a failing test for spec [1]: Calculate shipping cost based on weight",
+    "Cover happy path, edge cases, and error conditions for this spec.",
+    "Run the project's test command to verify the new test FAILS.",
     "Do NOT write any implementation code yet.",
-    "When all tests are written and confirmed failing, run: tdd-ai phase next"
+    "When the test is written and confirmed failing, run: tdd-ai test && tdd-ai phase next (test result is stored and auto-used)"
   ],
   "rules": [
     "DO NOT create implementation files.",
@@ -164,13 +176,13 @@ The AI reads the `instructions` and `rules`, does the work, then advances to the
 
 **Greenfield** (default) — Building new features from scratch:
 ```
-red (tests fail) -> green (tests pass) -> refactor -> done
+red (tests fail) -> green (tests pass) -> refactor -> [red (loop) | done]
 ```
 
 **Retrofit** — Adding tests to existing code:
 ```bash
 tdd-ai init --retrofit
-# red (tests pass, verifying existing behavior) -> refactor -> done
+# red (tests pass, verifying existing behavior) -> refactor -> [red (loop) | done]
 ```
 
 ## Commands
@@ -181,6 +193,7 @@ tdd-ai init --retrofit
 | `tdd-ai init --retrofit` | Start a session for testing existing code |
 | `tdd-ai spec add "desc" [...]` | Add one or more specs |
 | `tdd-ai spec list` | List all specs with status |
+| `tdd-ai spec pick <id>` | Pick a spec to work on in the current iteration |
 | `tdd-ai spec done <id> [...]` | Mark specs as completed |
 | `tdd-ai guide` | Get phase-appropriate instructions |
 | `tdd-ai phase next` | Advance to next phase |

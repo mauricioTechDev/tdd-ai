@@ -80,7 +80,7 @@ This is the "I'm done, wrap it up" command.`,
 			return fmt.Errorf("cannot complete: %d reflection question(s) unanswered. Use 'tdd-ai refactor status' to see them", len(pending))
 		}
 
-		// Advance through remaining phases to done
+		// Advance through remaining phases to done (uses NextWithMode, not NextInLoop, to skip loop)
 		phasesAdvanced := 0
 		mode := s.GetMode()
 		for s.Phase != types.PhaseDone {
@@ -93,8 +93,9 @@ This is the "I'm done, wrap it up" command.`,
 			phasesAdvanced++
 		}
 
-		// Mark all active specs as completed
+		// Batch-complete ALL remaining active specs and clear current spec
 		specsCompleted := s.CompleteAllSpecs()
+		s.CurrentSpecID = nil
 
 		// Record completion event
 		s.AddEvent("complete", func(e *types.Event) {

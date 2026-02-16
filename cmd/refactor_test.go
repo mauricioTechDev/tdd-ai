@@ -53,8 +53,8 @@ func TestRefactorShowsStatus(t *testing.T) {
 		t.Fatalf("refactor command failed: %v", err)
 	}
 
-	if !strings.Contains(out, "0/6 answered") {
-		t.Errorf("should show 0/6 answered, got:\n%s", out)
+	if !strings.Contains(out, "0/7 answered") {
+		t.Errorf("should show 0/7 answered, got:\n%s", out)
 	}
 }
 
@@ -88,7 +88,7 @@ func TestRefactorReflectSetsAnswer(t *testing.T) {
 	if !strings.Contains(out, "Answered question 1") {
 		t.Errorf("should confirm answer, got:\n%s", out)
 	}
-	if !strings.Contains(out, "5 remaining") {
+	if !strings.Contains(out, "6 remaining") {
 		t.Errorf("should show remaining count, got:\n%s", out)
 	}
 
@@ -168,8 +168,8 @@ func TestRefactorStatusText(t *testing.T) {
 		t.Fatalf("refactor status failed: %v", err)
 	}
 
-	if !strings.Contains(out, "1/6 answered") {
-		t.Errorf("should show 1/6 answered, got:\n%s", out)
+	if !strings.Contains(out, "1/7 answered") {
+		t.Errorf("should show 1/7 answered, got:\n%s", out)
 	}
 	if !strings.Contains(out, "(answered)") {
 		t.Errorf("should show answered label, got:\n%s", out)
@@ -193,14 +193,14 @@ func TestRefactorStatusJSON(t *testing.T) {
 		t.Fatalf("output is not valid JSON: %v\nraw:\n%s", err, out)
 	}
 
-	if parsed["total"] != float64(6) {
-		t.Errorf("total = %v, want 6", parsed["total"])
+	if parsed["total"] != float64(7) {
+		t.Errorf("total = %v, want 7", parsed["total"])
 	}
 	if parsed["answered"] != float64(0) {
 		t.Errorf("answered = %v, want 0", parsed["answered"])
 	}
-	if parsed["pending"] != float64(6) {
-		t.Errorf("pending = %v, want 6", parsed["pending"])
+	if parsed["pending"] != float64(7) {
+		t.Errorf("pending = %v, want 7", parsed["pending"])
 	}
 	if parsed["all_answered"] != false {
 		t.Errorf("all_answered = %v, want false", parsed["all_answered"])

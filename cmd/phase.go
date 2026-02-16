@@ -51,6 +51,11 @@ Use --test-result to validate that tests are in the expected state before advanc
 			return fmt.Errorf("cannot advance from red phase: no active specs. Add specs with 'tdd-ai spec add'")
 		}
 
+		// Require a spec to be picked before leaving RED
+		if current == types.PhaseRed && s.CurrentSpecID == nil {
+			return fmt.Errorf("cannot advance from red phase: no spec selected. Pick one with 'tdd-ai spec pick <id>'")
+		}
+
 		mode := s.GetMode()
 		expected := phase.ExpectedTestResult(current, mode)
 
@@ -81,12 +86,24 @@ Use --test-result to validate that tests are in the expected state before advanc
 			return fmt.Errorf("cannot advance: %d reflection question(s) unanswered. Use 'tdd-ai refactor status' to see them", len(pending))
 		}
 
+		// Auto-complete current spec when leaving refactor
+		if current == types.PhaseRefactor && s.CurrentSpecID != nil {
+			completedID := *s.CurrentSpecID
+			if err := s.CompleteCurrentSpec(); err != nil {
+				return fmt.Errorf("completing current spec: %w", err)
+			}
+			s.Iteration++
+			fmt.Fprintf(cmd.OutOrStdout(), "Completed spec [%d], iteration %d done\n", completedID, s.Iteration)
+		}
+
 		// Clear last test result after consuming it
 		if s.LastTestResult != "" {
 			s.LastTestResult = ""
 		}
 
-		next, err := phase.NextWithMode(current, mode)
+		// Use loop-aware transition from refactor
+		hasRemaining := len(s.RemainingSpecs()) > 0
+		next, err := phase.NextInLoop(current, mode, hasRemaining)
 		if err != nil {
 			return err
 		}
@@ -94,6 +111,10 @@ Use --test-result to validate that tests are in the expected state before advanc
 		s.Phase = next
 		if next == types.PhaseRefactor {
 			s.Reflections = reflection.DefaultQuestions()
+		}
+		// Clear current spec when entering RED via loop (agent must pick next)
+		if next == types.PhaseRed {
+			s.CurrentSpecID = nil
 		}
 		s.AddEvent("phase_next", func(e *types.Event) {
 			e.From = string(current)
@@ -110,6 +131,12 @@ Use --test-result to validate that tests are in the expected state before advanc
 
 		if next == types.PhaseDone {
 			fmt.Fprintln(cmd.OutOrStdout(), "Next: mark completed specs with 'tdd-ai spec done --all' or 'tdd-ai spec done <id>'")
+		} else if next == types.PhaseRed && hasRemaining {
+			remaining := s.ActiveSpecs()
+			fmt.Fprintf(cmd.OutOrStdout(), "%d spec(s) remaining. Pick the next one: tdd-ai spec pick <id>\n", len(remaining))
+			for _, spec := range remaining {
+				fmt.Fprintf(cmd.OutOrStdout(), "  [%d] %s\n", spec.ID, spec.Description)
+			}
 		} else {
 			fmt.Fprintln(cmd.OutOrStdout(), "Next: run 'tdd-ai guide --format json' for phase instructions")
 		}
@@ -141,6 +168,9 @@ var phaseSetCmd = &cobra.Command{
 		s.Phase = p
 		if p == types.PhaseRefactor && len(s.Reflections) == 0 {
 			s.Reflections = reflection.DefaultQuestions()
+		}
+		if p == types.PhaseRed {
+			s.CurrentSpecID = nil
 		}
 		s.AddEvent("phase_set", func(e *types.Event) {
 			e.From = string(old)

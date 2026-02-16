@@ -134,6 +134,7 @@ func TestCanTransition(t *testing.T) {
 		{"red to green", types.PhaseRed, types.PhaseGreen, true},
 		{"green to refactor", types.PhaseGreen, types.PhaseRefactor, true},
 		{"refactor to done", types.PhaseRefactor, types.PhaseDone, true},
+		{"refactor to red (loop)", types.PhaseRefactor, types.PhaseRed, true},
 		{"red to refactor not allowed", types.PhaseRed, types.PhaseRefactor, false},
 		{"green to red not allowed", types.PhaseGreen, types.PhaseRed, false},
 		{"done to red not allowed", types.PhaseDone, types.PhaseRed, false},
@@ -146,5 +147,60 @@ func TestCanTransition(t *testing.T) {
 				t.Errorf("CanTransition(%q, %q) = %v, want %v", tt.from, tt.to, got, tt.want)
 			}
 		})
+	}
+}
+
+func TestNextInLoopReturnsRedWhenRemainingSpecs(t *testing.T) {
+	got, err := NextInLoop(types.PhaseRefactor, types.ModeGreenfield, true)
+	if err != nil {
+		t.Fatalf("NextInLoop(refactor, greenfield, true) error: %v", err)
+	}
+	if got != types.PhaseRed {
+		t.Errorf("NextInLoop(refactor, greenfield, true) = %q, want %q", got, types.PhaseRed)
+	}
+}
+
+func TestNextInLoopReturnsDoneWhenNoRemainingSpecs(t *testing.T) {
+	got, err := NextInLoop(types.PhaseRefactor, types.ModeGreenfield, false)
+	if err != nil {
+		t.Fatalf("NextInLoop(refactor, greenfield, false) error: %v", err)
+	}
+	if got != types.PhaseDone {
+		t.Errorf("NextInLoop(refactor, greenfield, false) = %q, want %q", got, types.PhaseDone)
+	}
+}
+
+func TestNextInLoopBehavesLikeNextWithModeForNonRefactor(t *testing.T) {
+	tests := []struct {
+		name    string
+		current types.Phase
+		mode    types.Mode
+		want    types.Phase
+	}{
+		{"red to green greenfield", types.PhaseRed, types.ModeGreenfield, types.PhaseGreen},
+		{"green to refactor greenfield", types.PhaseGreen, types.ModeGreenfield, types.PhaseRefactor},
+		{"red to refactor retrofit", types.PhaseRed, types.ModeRetrofit, types.PhaseRefactor},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := NextInLoop(tt.current, tt.mode, true)
+			if err != nil {
+				t.Fatalf("NextInLoop(%q, %q, true) error: %v", tt.current, tt.mode, err)
+			}
+			if got != tt.want {
+				t.Errorf("NextInLoop(%q, %q, true) = %q, want %q", tt.current, tt.mode, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestNextInLoopRetrofitRefactorWithRemaining(t *testing.T) {
+	got, err := NextInLoop(types.PhaseRefactor, types.ModeRetrofit, true)
+	if err != nil {
+		t.Fatalf("NextInLoop(refactor, retrofit, true) error: %v", err)
+	}
+	if got != types.PhaseRed {
+		t.Errorf("NextInLoop(refactor, retrofit, true) = %q, want %q", got, types.PhaseRed)
 	}
 }

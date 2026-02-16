@@ -107,7 +107,7 @@ var reflectCmd = &cobra.Command{
 var refactorStatusCmd = &cobra.Command{
 	Use:   "status",
 	Short: "Show all reflection questions with status",
-	Long:  "Display all 6 reflection questions with their answered/pending status.",
+	Long:  "Display all reflection questions with their answered/pending status.",
 	Example: `  tdd-ai refactor status
   tdd-ai refactor status --format json`,
 	RunE: func(cmd *cobra.Command, _ []string) error {

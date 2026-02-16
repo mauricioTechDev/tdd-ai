@@ -73,6 +73,8 @@ type Session struct {
 	LastTestResult string               `json:"last_test_result,omitempty"`
 	Specs          []Spec               `json:"specs"`
 	NextID         int                  `json:"next_id"`
+	CurrentSpecID  *int                 `json:"current_spec_id,omitempty"`
+	Iteration      int                  `json:"iteration,omitempty"`
 	Reflections    []ReflectionQuestion `json:"reflections,omitempty"`
 	History        []Event              `json:"history,omitempty"`
 }
@@ -143,6 +145,56 @@ func (s *Session) ActiveSpecs() []Spec {
 	return active
 }
 
+// CurrentSpec returns the spec matching CurrentSpecID, or nil if none is set.
+func (s *Session) CurrentSpec() *Spec {
+	if s.CurrentSpecID == nil {
+		return nil
+	}
+	for i, spec := range s.Specs {
+		if spec.ID == *s.CurrentSpecID {
+			return &s.Specs[i]
+		}
+	}
+	return nil
+}
+
+// SetCurrentSpec sets CurrentSpecID after validating the spec exists and is active.
+func (s *Session) SetCurrentSpec(id int) error {
+	for _, spec := range s.Specs {
+		if spec.ID == id {
+			if spec.Status != SpecStatusActive {
+				return fmt.Errorf("spec %d is not active", id)
+			}
+			s.CurrentSpecID = &id
+			return nil
+		}
+	}
+	return fmt.Errorf("spec %d not found", id)
+}
+
+// CompleteCurrentSpec marks the current spec as completed and clears CurrentSpecID.
+func (s *Session) CompleteCurrentSpec() error {
+	if s.CurrentSpecID == nil {
+		return fmt.Errorf("no current spec selected")
+	}
+	if err := s.CompleteSpec(*s.CurrentSpecID); err != nil {
+		return err
+	}
+	s.CurrentSpecID = nil
+	return nil
+}
+
+// RemainingSpecs returns active specs excluding the current one.
+func (s *Session) RemainingSpecs() []Spec {
+	var remaining []Spec
+	for _, spec := range s.Specs {
+		if spec.Status == SpecStatusActive && (s.CurrentSpecID == nil || spec.ID != *s.CurrentSpecID) {
+			remaining = append(remaining, spec)
+		}
+	}
+	return remaining
+}
+
 // PendingReflections returns reflection questions that have not been answered.
 func (s *Session) PendingReflections() []ReflectionQuestion {
 	var pending []ReflectionQuestion
@@ -184,6 +236,7 @@ type Event struct {
 	To        string `json:"to,omitempty"`
 	Result    string `json:"result,omitempty"`
 	SpecCount int    `json:"spec_count,omitempty"`
+	SpecID    int    `json:"spec_id,omitempty"`
 	Timestamp string `json:"at"`
 }
 
@@ -206,6 +259,9 @@ type Guidance struct {
 	NextPhase    Phase                `json:"next_phase,omitempty"`
 	TestCmd      string               `json:"test_cmd,omitempty"`
 	Specs        []Spec               `json:"specs"`
+	CurrentSpec  *Spec                `json:"current_spec,omitempty"`
+	Iteration    int                  `json:"iteration,omitempty"`
+	TotalSpecs   int                  `json:"total_specs,omitempty"`
 	Instructions []string             `json:"instructions"`
 	Rules        []string             `json:"rules"`
 	Reflections  []ReflectionQuestion `json:"reflections,omitempty"`
