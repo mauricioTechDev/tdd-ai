@@ -17,19 +17,59 @@ LLMs are excellent at writing tests and code. What they lack is **discipline**. 
 
 ## Install
 
+### Option 1: npm (recommended)
+
 ```bash
-# Install via npm (recommended)
 npm install -g tdd-ai
 ```
 
-Or build from source (requires Go 1.22+):
+### Option 2: Download Binary (no Node.js required)
+
+Pre-built binaries are available for the following platforms:
+
+| OS      | Architecture | Archive       |
+|---------|-------------|---------------|
+| Linux   | amd64 (x86-64) | `.tar.gz`  |
+| Linux   | arm64 (Apple Silicon / ARM servers) | `.tar.gz` |
+| macOS   | amd64 (Intel) | `.tar.gz`  |
+| macOS   | arm64 (Apple Silicon) | `.tar.gz` |
+| Windows | amd64 (x86-64) | `.zip`    |
+| Windows | arm64       | `.zip`        |
+
+Download the latest release from the [GitHub Releases page](https://github.com/mauricioTechDev/tdd-ai/releases/latest).
+
+**macOS / Linux:**
 
 ```bash
+# Replace <version>, <os>, and <arch> with the values for your system
+# Example: tdd-ai_0.5.0_darwin_arm64.tar.gz (macOS Apple Silicon)
+# Example: tdd-ai_0.5.0_linux_amd64.tar.gz  (Linux x86-64)
+curl -L https://github.com/mauricioTechDev/tdd-ai/releases/latest/download/tdd-ai_<version>_<os>_<arch>.tar.gz | tar xz
+
+# Move to a directory on your PATH
+sudo mv tdd-ai /usr/local/bin/
+```
+
+**Windows:**
+
+Download the `.zip` file from the [Releases page](https://github.com/mauricioTechDev/tdd-ai/releases/latest), extract it, and add the directory to your `PATH`.
+
+### Option 3: Build from Source (requires Go 1.22+)
+
+```bash
+git clone https://github.com/mauricioTechDev/tdd-ai.git
+cd tdd-ai
 make build
 
 # Binary is at bin/tdd-ai
 # Optionally copy to your PATH:
 cp bin/tdd-ai ~/go/bin/
+```
+
+### Verify Installation
+
+```bash
+tdd-ai version
 ```
 
 ## Quick Start
