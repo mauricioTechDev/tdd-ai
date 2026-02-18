@@ -68,7 +68,7 @@ func TestCommandsIncludesAllCommands(t *testing.T) {
 	expectedCommands := []string{
 		"init", "spec add", "spec list", "spec done", "spec pick",
 		"phase", "phase next", "phase set",
-		"guide", "test", "complete", "status", "reset", "version",
+		"guide", "test", "complete", "status", "resume", "reset", "version",
 		"refactor", "refactor reflect", "refactor status",
 	}
 

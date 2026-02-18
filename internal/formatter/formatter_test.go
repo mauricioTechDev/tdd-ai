@@ -691,6 +691,255 @@ func TestFormatStatusTextMarksCurrentSpec(t *testing.T) {
 	}
 }
 
+func TestFormatResumeJSONStructure(t *testing.T) {
+	s := types.NewSession()
+	s.AddSpec("feature A")
+	s.AddSpec("feature B")
+	_ = s.SetCurrentSpec(1)
+
+	out, err := FormatResume(s, FormatJSON)
+	if err != nil {
+		t.Fatalf("FormatResume() error: %v", err)
+	}
+
+	var parsed map[string]interface{}
+	if err := json.Unmarshal([]byte(out), &parsed); err != nil {
+		t.Fatalf("output is not valid JSON: %v", err)
+	}
+	if parsed["phase"] != "red" {
+		t.Errorf("phase = %v, want red", parsed["phase"])
+	}
+	if parsed["mode"] != "greenfield" {
+		t.Errorf("mode = %v, want greenfield", parsed["mode"])
+	}
+	if parsed["next_action"] == nil {
+		t.Error("next_action field should be present")
+	}
+	if parsed["remaining_specs"] != float64(1) {
+		t.Errorf("remaining_specs = %v, want 1", parsed["remaining_specs"])
+	}
+}
+
+func TestFormatResumeTextOutput(t *testing.T) {
+	s := types.NewSession()
+	s.AddSpec("user can login")
+	_ = s.SetCurrentSpec(1)
+
+	out, err := FormatResume(s, FormatText)
+	if err != nil {
+		t.Fatalf("FormatResume() error: %v", err)
+	}
+
+	if !strings.Contains(out, "=== TDD Session Checkpoint ===") {
+		t.Error("text output should contain checkpoint header")
+	}
+	if !strings.Contains(out, "Phase: RED") {
+		t.Error("text output should contain uppercase phase")
+	}
+	if !strings.Contains(out, "Working on: [1] user can login") {
+		t.Error("text output should contain current spec")
+	}
+	if !strings.Contains(out, "NEXT ACTION:") {
+		t.Error("text output should contain NEXT ACTION section")
+	}
+}
+
+func TestFormatResumeTextRedNoSpecPicked(t *testing.T) {
+	s := types.NewSession()
+	s.AddSpec("feature A")
+	s.AddSpec("feature B")
+
+	out, err := FormatResume(s, FormatText)
+	if err != nil {
+		t.Fatalf("FormatResume() error: %v", err)
+	}
+
+	if !strings.Contains(out, "Working on: (no spec selected)") {
+		t.Errorf("text output should show no spec selected, got:\n%s", out)
+	}
+	if !strings.Contains(out, "BLOCKERS:") {
+		t.Errorf("text output should show blockers when no spec picked, got:\n%s", out)
+	}
+	if !strings.Contains(out, "tdd-ai spec pick 1") {
+		t.Errorf("next action should suggest spec pick, got:\n%s", out)
+	}
+}
+
+func TestFormatResumeTextRefactorWithPendingReflections(t *testing.T) {
+	s := types.NewSession()
+	s.Phase = types.PhaseRefactor
+	s.AddSpec("feature A")
+	_ = s.SetCurrentSpec(1)
+	s.Reflections = []types.ReflectionQuestion{
+		{ID: 1, Question: "Q1", Answer: "already answered this one"},
+		{ID: 2, Question: "Q2", Answer: ""},
+		{ID: 3, Question: "Q3", Answer: ""},
+	}
+
+	out, err := FormatResume(s, FormatText)
+	if err != nil {
+		t.Fatalf("FormatResume() error: %v", err)
+	}
+
+	if !strings.Contains(out, "BLOCKERS:") {
+		t.Errorf("text output should show blockers with pending reflections, got:\n%s", out)
+	}
+	if !strings.Contains(out, "2 of 3 reflection questions unanswered") {
+		t.Errorf("text output should report pending count, got:\n%s", out)
+	}
+	if !strings.Contains(out, `tdd-ai refactor reflect 2`) {
+		t.Errorf("next action should target first pending reflection, got:\n%s", out)
+	}
+}
+
+func TestFormatResumeTextGreenPhase(t *testing.T) {
+	s := types.NewSession()
+	s.Phase = types.PhaseGreen
+	s.AddSpec("feature A")
+	_ = s.SetCurrentSpec(1)
+
+	out, err := FormatResume(s, FormatText)
+	if err != nil {
+		t.Fatalf("FormatResume() error: %v", err)
+	}
+
+	if strings.Contains(out, "BLOCKERS:") {
+		t.Errorf("GREEN phase should have no blockers, got:\n%s", out)
+	}
+	if !strings.Contains(out, "tdd-ai test && tdd-ai phase next") {
+		t.Errorf("GREEN next action should be test && phase next, got:\n%s", out)
+	}
+}
+
+func TestFormatResumeTextNoSpecs(t *testing.T) {
+	s := types.NewSession()
+
+	out, err := FormatResume(s, FormatText)
+	if err != nil {
+		t.Fatalf("FormatResume() error: %v", err)
+	}
+
+	if !strings.Contains(out, "tdd-ai spec add") {
+		t.Errorf("no specs: next action should suggest spec add, got:\n%s", out)
+	}
+}
+
+func TestFormatResumeUnknownFormat(t *testing.T) {
+	s := types.NewSession()
+	_, err := FormatResume(s, Format("xml"))
+	if err == nil {
+		t.Error("should return error for unknown format")
+	}
+}
+
+func TestFormatResumeTextShowsIterationWhenNonZero(t *testing.T) {
+	s := types.NewSession()
+	s.Phase = types.PhaseGreen
+	s.Iteration = 3
+	s.AddSpec("feature A")
+	_ = s.SetCurrentSpec(1)
+
+	out, err := FormatResume(s, FormatText)
+	if err != nil {
+		t.Fatalf("FormatResume() error: %v", err)
+	}
+
+	if !strings.Contains(out, "Iteration: 3") {
+		t.Errorf("text output should show iteration when non-zero, got:\n%s", out)
+	}
+}
+
+func TestFormatResumeTextShowsRecentEvents(t *testing.T) {
+	s := types.NewSession()
+	s.Phase = types.PhaseGreen
+	s.AddSpec("feature")
+	_ = s.SetCurrentSpec(1)
+	s.AddEvent("phase_next", func(e *types.Event) {
+		e.From = "red"
+		e.To = "green"
+		e.Result = "fail"
+	})
+
+	out, err := FormatResume(s, FormatText)
+	if err != nil {
+		t.Fatalf("FormatResume() error: %v", err)
+	}
+
+	if !strings.Contains(out, "Recent events:") {
+		t.Errorf("text output should show recent events section, got:\n%s", out)
+	}
+	if !strings.Contains(out, "phase_next (red -> green) [fail]") {
+		t.Errorf("text output should show event details, got:\n%s", out)
+	}
+}
+
+func TestFormatResumeJSONOmitsBlockersWhenNone(t *testing.T) {
+	s := types.NewSession()
+	s.Phase = types.PhaseGreen
+	s.AddSpec("feature")
+	_ = s.SetCurrentSpec(1)
+
+	out, err := FormatResume(s, FormatJSON)
+	if err != nil {
+		t.Fatalf("FormatResume() error: %v", err)
+	}
+
+	var parsed map[string]interface{}
+	if err := json.Unmarshal([]byte(out), &parsed); err != nil {
+		t.Fatalf("output is not valid JSON: %v", err)
+	}
+	if _, exists := parsed["blockers"]; exists {
+		t.Error("blockers should be omitted from JSON when there are none")
+	}
+}
+
+func TestFormatResumeJSONIncludesCurrentSpec(t *testing.T) {
+	s := types.NewSession()
+	s.Phase = types.PhaseGreen
+	s.AddSpec("user can login")
+	_ = s.SetCurrentSpec(1)
+
+	out, err := FormatResume(s, FormatJSON)
+	if err != nil {
+		t.Fatalf("FormatResume() error: %v", err)
+	}
+
+	var parsed map[string]interface{}
+	if err := json.Unmarshal([]byte(out), &parsed); err != nil {
+		t.Fatalf("output is not valid JSON: %v", err)
+	}
+	cs, ok := parsed["current_spec"].(map[string]interface{})
+	if !ok {
+		t.Fatal("current_spec should be present in JSON output")
+	}
+	if cs["description"] != "user can login" {
+		t.Errorf("current_spec.description = %v, want 'user can login'", cs["description"])
+	}
+}
+
+func TestFormatResumeTextRefactorAllAnswered(t *testing.T) {
+	s := types.NewSession()
+	s.Phase = types.PhaseRefactor
+	s.AddSpec("feature A")
+	_ = s.SetCurrentSpec(1)
+	s.Reflections = []types.ReflectionQuestion{
+		{ID: 1, Question: "Q1", Answer: "answered with enough words here"},
+		{ID: 2, Question: "Q2", Answer: "also answered with enough words"},
+	}
+
+	out, err := FormatResume(s, FormatText)
+	if err != nil {
+		t.Fatalf("FormatResume() error: %v", err)
+	}
+
+	if strings.Contains(out, "BLOCKERS:") {
+		t.Errorf("REFACTOR with all reflections answered should have no blockers, got:\n%s", out)
+	}
+	if !strings.Contains(out, "tdd-ai test && tdd-ai phase next") {
+		t.Errorf("all reflections answered: next action should be test && phase next, got:\n%s", out)
+	}
+}
+
 func TestFormatStatusTextSortsByID(t *testing.T) {
 	s := types.NewSession()
 	// Add specs in a way that results in non-sequential order
