@@ -1,6 +1,6 @@
 {
   "name": "tdd-ai",
-  "version": "0.4.0",
+  "version": "0.4.8",
   "description": "Enforce test-driven development for AI coding agents — works with Cursor, GitHub Copilot, Claude Code, Windsurf, and any LLM with terminal access",
   "keywords": [
     "tdd",
