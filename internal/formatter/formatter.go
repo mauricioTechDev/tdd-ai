@@ -216,6 +216,152 @@ func FormatFullStatus(s *types.Session, f Format) (string, error) {
 	}
 }
 
+// resumeNextAction returns the single most important next action for context recovery.
+func resumeNextAction(s *types.Session) string {
+	if len(s.Specs) == 0 {
+		return `tdd-ai spec add "desc1" "desc2" ...`
+	}
+	switch s.Phase {
+	case types.PhaseDone:
+		if len(s.ActiveSpecs()) > 0 {
+			return "tdd-ai spec done --all"
+		}
+		return `All specs complete. Add more specs: tdd-ai spec add "desc1" ...`
+	case types.PhaseRed:
+		if s.CurrentSpecID == nil {
+			active := s.ActiveSpecs()
+			if len(active) > 0 {
+				return fmt.Sprintf("tdd-ai spec pick %d", active[0].ID)
+			}
+		}
+		return "tdd-ai test && tdd-ai phase next"
+	case types.PhaseGreen:
+		return "tdd-ai test && tdd-ai phase next"
+	case types.PhaseRefactor:
+		pending := s.PendingReflections()
+		if len(pending) > 0 {
+			return fmt.Sprintf(`tdd-ai refactor reflect %d --answer "your answer here"`, pending[0].ID)
+		}
+		return "tdd-ai test && tdd-ai phase next"
+	}
+	return "tdd-ai guide"
+}
+
+// resumeBlockers returns conditions that will prevent advancing to the next phase.
+func resumeBlockers(s *types.Session) []string {
+	var blockers []string
+	switch s.Phase {
+	case types.PhaseRed:
+		if s.CurrentSpecID == nil && len(s.ActiveSpecs()) > 0 {
+			active := s.ActiveSpecs()
+			blockers = append(blockers,
+				fmt.Sprintf("No spec selected — must pick one before advancing: tdd-ai spec pick %d", active[0].ID),
+			)
+		}
+	case types.PhaseRefactor:
+		pending := s.PendingReflections()
+		if len(pending) > 0 {
+			blockers = append(blockers,
+				fmt.Sprintf("%d of %d reflection questions unanswered — run: tdd-ai refactor status", len(pending), len(s.Reflections)),
+			)
+		}
+	}
+	return blockers
+}
+
+// recentHistory returns the last n events from the session history.
+func recentHistory(s *types.Session, n int) []types.Event {
+	if len(s.History) <= n {
+		return s.History
+	}
+	return s.History[len(s.History)-n:]
+}
+
+// FormatResume renders a compact session checkpoint for agent context recovery.
+// Designed to be run after context compression or by a new sub-agent to quickly
+// re-orient to the current TDD session state without reading the full history.
+func FormatResume(s *types.Session, f Format) (string, error) {
+	type resumeOutput struct {
+		Phase          types.Phase   `json:"phase"`
+		Mode           types.Mode    `json:"mode"`
+		TestCmd        string        `json:"test_cmd,omitempty"`
+		Iteration      int           `json:"iteration,omitempty"`
+		CurrentSpec    *types.Spec   `json:"current_spec,omitempty"`
+		RemainingSpecs int           `json:"remaining_specs"`
+		Blockers       []string      `json:"blockers,omitempty"`
+		NextAction     string        `json:"next_action"`
+		RecentEvents   []types.Event `json:"recent_events,omitempty"`
+	}
+
+	remaining := len(s.RemainingSpecs())
+	blockers := resumeBlockers(s)
+	recent := recentHistory(s, 5)
+
+	out := resumeOutput{
+		Phase:          s.Phase,
+		Mode:           s.GetMode(),
+		TestCmd:        s.TestCmd,
+		Iteration:      s.Iteration,
+		RemainingSpecs: remaining,
+		Blockers:       blockers,
+		NextAction:     resumeNextAction(s),
+		RecentEvents:   recent,
+	}
+	if cs := s.CurrentSpec(); cs != nil {
+		out.CurrentSpec = cs
+	}
+
+	switch f {
+	case FormatJSON:
+		data, err := json.MarshalIndent(out, "", "  ")
+		if err != nil {
+			return "", err
+		}
+		return string(data), nil
+	case FormatText:
+		var b strings.Builder
+		b.WriteString("=== TDD Session Checkpoint ===\n")
+		fmt.Fprintf(&b, "Phase: %s | Mode: %s", strings.ToUpper(string(s.Phase)), s.GetMode())
+		if s.Iteration > 0 {
+			fmt.Fprintf(&b, " | Iteration: %d", s.Iteration)
+		}
+		b.WriteString("\n")
+		if cs := s.CurrentSpec(); cs != nil {
+			fmt.Fprintf(&b, "Working on: [%d] %s\n", cs.ID, cs.Description)
+		} else if s.Phase == types.PhaseRed && len(s.ActiveSpecs()) > 0 {
+			b.WriteString("Working on: (no spec selected)\n")
+		}
+		if remaining > 0 {
+			fmt.Fprintf(&b, "Remaining specs: %d\n", remaining)
+		}
+		b.WriteString("\n")
+		if len(blockers) > 0 {
+			b.WriteString("BLOCKERS:\n")
+			for _, bl := range blockers {
+				fmt.Fprintf(&b, "  - %s\n", bl)
+			}
+			b.WriteString("\n")
+		}
+		fmt.Fprintf(&b, "NEXT ACTION:\n  %s\n", out.NextAction)
+		if len(recent) > 0 {
+			b.WriteString("\nRecent events:\n")
+			for _, ev := range recent {
+				line := "  " + ev.Action
+				if ev.From != "" && ev.To != "" {
+					line += fmt.Sprintf(" (%s -> %s)", ev.From, ev.To)
+				}
+				if ev.Result != "" {
+					line += fmt.Sprintf(" [%s]", ev.Result)
+				}
+				fmt.Fprintln(&b, line)
+			}
+		}
+		return b.String(), nil
+	default:
+		return "", fmt.Errorf("unknown format: %q", f)
+	}
+}
+
 // FormatStatus renders a simple session status.
 func FormatStatus(s *types.Session, f Format) (string, error) {
 	type statusOutput struct {
