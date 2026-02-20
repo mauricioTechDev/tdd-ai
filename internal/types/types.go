@@ -254,15 +254,15 @@ func (s *Session) AddEvent(action string, opts ...func(*Event)) {
 
 // Guidance is the structured output of the guide command.
 type Guidance struct {
-	Phase        Phase                `json:"phase"`
-	Mode         Mode                 `json:"mode"`
-	NextPhase    Phase                `json:"next_phase,omitempty"`
-	TestCmd      string               `json:"test_cmd,omitempty"`
-	Specs        []Spec               `json:"specs"`
-	CurrentSpec  *Spec                `json:"current_spec,omitempty"`
-	Iteration    int                  `json:"iteration,omitempty"`
-	TotalSpecs   int                  `json:"total_specs,omitempty"`
-	Instructions []string             `json:"instructions"`
-	Rules        []string             `json:"rules"`
-	Reflections  []ReflectionQuestion `json:"reflections,omitempty"`
+	Phase              Phase                `json:"phase"`
+	Mode               Mode                 `json:"mode"`
+	NextPhase          Phase                `json:"next_phase,omitempty"`
+	TestCmd            string               `json:"test_cmd,omitempty"`
+	Specs              []Spec               `json:"specs"`
+	CurrentSpec        *Spec                `json:"current_spec,omitempty"`
+	Iteration          int                  `json:"iteration,omitempty"`
+	TotalSpecs         int                  `json:"total_specs,omitempty"`
+	ExpectedTestResult string               `json:"expected_test_result,omitempty"`
+	Blockers           []string             `json:"blockers,omitempty"`
+	Reflections        []ReflectionQuestion `json:"reflections,omitempty"`
 }

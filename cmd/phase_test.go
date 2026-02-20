@@ -254,7 +254,7 @@ func TestPhaseNextFromRedRequiresCurrentSpec(t *testing.T) {
 	if err == nil {
 		t.Fatal("phase next from red should require CurrentSpecID")
 	}
-	if !strings.Contains(err.Error(), "no spec selected") {
+	if !strings.Contains(err.Error(), "cannot advance: no spec selected") {
 		t.Errorf("error should mention no spec selected, got: %v", err)
 	}
 }

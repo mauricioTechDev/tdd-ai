@@ -16,13 +16,13 @@ var (
 var rootCmd = &cobra.Command{
 	Use:   "tdd-ai",
 	Short: "TDD guardrails for AI coding agents",
-	Long: `tdd-ai is a TDD state machine that keeps AI coding agents disciplined.
+	Long: `tdd-ai is a TDD state machine for AI coding agents.
 
-It tracks specs (what to build), phases (red/green/refactor), and provides
-structured guidance telling the AI what to do and what NOT to do.
+It provides phase tracking, spec management, and phase-gating. The state
+machine enforces TDD discipline — constraints are enforced, not instructed.
 
 The CLI does NOT run tests — the AI agent runs tests itself. This tool
-provides the guardrails and feedback loop that LLMs lack on their own.`,
+provides the state machine and guardrails that keep the TDD loop tight.`,
 	PersistentPreRun: func(cmd *cobra.Command, _ []string) {
 		// Auto-detect format: default to JSON when stdout is not a terminal
 		// (i.e., when an AI agent is running the CLI via pipe/redirect).

@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/macosta/tdd-ai/internal/phase"
 	"github.com/macosta/tdd-ai/internal/types"
 )
 
@@ -64,6 +65,9 @@ func formatText(g types.Guidance) string {
 	if g.Iteration > 0 {
 		fmt.Fprintf(&b, "Iteration: %d\n", g.Iteration)
 	}
+	if g.ExpectedTestResult != "" {
+		fmt.Fprintf(&b, "Expected Test Result: %s\n", g.ExpectedTestResult)
+	}
 	b.WriteString("\n")
 
 	if len(g.Specs) > 0 {
@@ -74,18 +78,10 @@ func formatText(g types.Guidance) string {
 		b.WriteString("\n")
 	}
 
-	if len(g.Instructions) > 0 {
-		b.WriteString("Instructions:\n")
-		for _, inst := range g.Instructions {
-			fmt.Fprintf(&b, "  - %s\n", inst)
-		}
-		b.WriteString("\n")
-	}
-
-	if len(g.Rules) > 0 {
-		b.WriteString("Rules:\n")
-		for _, rule := range g.Rules {
-			fmt.Fprintf(&b, "  - %s\n", rule)
+	if len(g.Blockers) > 0 {
+		b.WriteString("Blockers:\n")
+		for _, bl := range g.Blockers {
+			fmt.Fprintf(&b, "  - %s\n", bl)
 		}
 		b.WriteString("\n")
 	}
@@ -114,20 +110,6 @@ func formatText(g types.Guidance) string {
 	return b.String()
 }
 
-// nextAction returns a recommended next step based on session state.
-func nextAction(s *types.Session) string {
-	if len(s.Specs) == 0 {
-		return "Next: add specs with 'tdd-ai spec add \"desc1\" \"desc2\" ...'"
-	}
-	if s.Phase == types.PhaseDone {
-		if len(s.ActiveSpecs()) == 0 {
-			return "Next: all specs complete. Add more specs or run 'tdd-ai reset' to start over"
-		}
-		return "Next: mark completed specs with 'tdd-ai spec done --all' or 'tdd-ai spec done <id>'"
-	}
-	return "Next: run 'tdd-ai guide --format json' for phase instructions"
-}
-
 // FormatFullStatus renders a rich session overview.
 func FormatFullStatus(s *types.Session, f Format) (string, error) {
 	type fullStatusOutput struct {
@@ -141,7 +123,6 @@ func FormatFullStatus(s *types.Session, f Format) (string, error) {
 		DoneSpecs     int           `json:"done_specs"`
 		Specs         []types.Spec  `json:"specs"`
 		History       []types.Event `json:"history,omitempty"`
-		NextAction    string        `json:"next_action"`
 	}
 
 	active := s.ActiveSpecs()
@@ -158,7 +139,6 @@ func FormatFullStatus(s *types.Session, f Format) (string, error) {
 		DoneSpecs:     len(s.Specs) - len(active),
 		Specs:         s.Specs,
 		History:       s.History,
-		NextAction:    nextAction(s),
 	}
 
 	switch f {
@@ -209,7 +189,6 @@ func FormatFullStatus(s *types.Session, f Format) (string, error) {
 			}
 			b.WriteString("\n")
 		}
-		fmt.Fprintln(&b, out.NextAction)
 		return b.String(), nil
 	default:
 		return "", fmt.Errorf("unknown format: %q", f)
@@ -247,28 +226,6 @@ func resumeNextAction(s *types.Session) string {
 	return "tdd-ai guide"
 }
 
-// resumeBlockers returns conditions that will prevent advancing to the next phase.
-func resumeBlockers(s *types.Session) []string {
-	var blockers []string
-	switch s.Phase {
-	case types.PhaseRed:
-		if s.CurrentSpecID == nil && len(s.ActiveSpecs()) > 0 {
-			active := s.ActiveSpecs()
-			blockers = append(blockers,
-				fmt.Sprintf("No spec selected — must pick one before advancing: tdd-ai spec pick %d", active[0].ID),
-			)
-		}
-	case types.PhaseRefactor:
-		pending := s.PendingReflections()
-		if len(pending) > 0 {
-			blockers = append(blockers,
-				fmt.Sprintf("%d of %d reflection questions unanswered — run: tdd-ai refactor status", len(pending), len(s.Reflections)),
-			)
-		}
-	}
-	return blockers
-}
-
 // recentHistory returns the last n events from the session history.
 func recentHistory(s *types.Session, n int) []types.Event {
 	if len(s.History) <= n {
@@ -294,7 +251,7 @@ func FormatResume(s *types.Session, f Format) (string, error) {
 	}
 
 	remaining := len(s.RemainingSpecs())
-	blockers := resumeBlockers(s)
+	blockers := phase.GetBlockers(s)
 	recent := recentHistory(s, 5)
 
 	out := resumeOutput{

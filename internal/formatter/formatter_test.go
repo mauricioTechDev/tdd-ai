@@ -10,13 +10,13 @@ import (
 
 func TestFormatGuidanceJSON(t *testing.T) {
 	g := types.Guidance{
-		Phase: types.PhaseRed,
-		Mode:  types.ModeGreenfield,
+		Phase:              types.PhaseRed,
+		Mode:               types.ModeGreenfield,
+		ExpectedTestResult: "fail",
 		Specs: []types.Spec{
 			{ID: 1, Description: "test spec", Status: types.SpecStatusActive},
 		},
-		Instructions: []string{"write tests"},
-		Rules:        []string{"no implementation"},
+		Blockers: []string{"No test result recorded"},
 	}
 
 	out, err := FormatGuidance(g, FormatJSON)
@@ -24,7 +24,6 @@ func TestFormatGuidanceJSON(t *testing.T) {
 		t.Fatalf("FormatGuidance() error: %v", err)
 	}
 
-	// Verify it is valid JSON
 	var parsed types.Guidance
 	if err := json.Unmarshal([]byte(out), &parsed); err != nil {
 		t.Fatalf("output is not valid JSON: %v", err)
@@ -38,15 +37,17 @@ func TestFormatGuidanceJSON(t *testing.T) {
 	if len(parsed.Specs) != 1 {
 		t.Errorf("parsed specs length = %d, want 1", len(parsed.Specs))
 	}
+	if parsed.ExpectedTestResult != "fail" {
+		t.Errorf("parsed expected_test_result = %q, want %q", parsed.ExpectedTestResult, "fail")
+	}
 }
 
 func TestFormatGuidanceJSONIncludesMode(t *testing.T) {
 	g := types.Guidance{
-		Phase:        types.PhaseRed,
-		Mode:         types.ModeRetrofit,
-		Specs:        []types.Spec{},
-		Instructions: []string{"verify existing behavior"},
-		Rules:        []string{"do not modify implementation"},
+		Phase:              types.PhaseRed,
+		Mode:               types.ModeRetrofit,
+		ExpectedTestResult: "pass",
+		Specs:              []types.Spec{},
 	}
 
 	out, err := FormatGuidance(g, FormatJSON)
@@ -65,13 +66,13 @@ func TestFormatGuidanceJSONIncludesMode(t *testing.T) {
 
 func TestFormatGuidanceText(t *testing.T) {
 	g := types.Guidance{
-		Phase: types.PhaseGreen,
-		Mode:  types.ModeGreenfield,
+		Phase:              types.PhaseGreen,
+		Mode:               types.ModeGreenfield,
+		ExpectedTestResult: "pass",
 		Specs: []types.Spec{
 			{ID: 1, Description: "my feature", Status: types.SpecStatusActive},
 		},
-		Instructions: []string{"write minimal code", "run tests"},
-		Rules:        []string{"do not modify tests"},
+		Blockers: []string{"No test result recorded"},
 	}
 
 	out, err := FormatGuidance(g, FormatText)
@@ -88,11 +89,11 @@ func TestFormatGuidanceText(t *testing.T) {
 	if !strings.Contains(out, "[1] my feature") {
 		t.Error("text output should contain spec")
 	}
-	if !strings.Contains(out, "write minimal code") {
-		t.Error("text output should contain instructions")
+	if !strings.Contains(out, "Expected Test Result: pass") {
+		t.Error("text output should contain expected test result")
 	}
-	if !strings.Contains(out, "do not modify tests") {
-		t.Error("text output should contain rules")
+	if !strings.Contains(out, "Blockers:") {
+		t.Error("text output should contain blockers section")
 	}
 }
 
@@ -106,12 +107,11 @@ func TestFormatGuidanceUnknownFormat(t *testing.T) {
 
 func TestFormatGuidanceJSONIncludesNextPhase(t *testing.T) {
 	g := types.Guidance{
-		Phase:        types.PhaseRed,
-		Mode:         types.ModeGreenfield,
-		NextPhase:    types.PhaseGreen,
-		Specs:        []types.Spec{},
-		Instructions: []string{"write tests"},
-		Rules:        []string{"no impl"},
+		Phase:              types.PhaseRed,
+		Mode:               types.ModeGreenfield,
+		NextPhase:          types.PhaseGreen,
+		ExpectedTestResult: "fail",
+		Specs:              []types.Spec{},
 	}
 
 	out, err := FormatGuidance(g, FormatJSON)
@@ -130,12 +130,11 @@ func TestFormatGuidanceJSONIncludesNextPhase(t *testing.T) {
 
 func TestFormatGuidanceJSONIncludesTestCmd(t *testing.T) {
 	g := types.Guidance{
-		Phase:        types.PhaseRed,
-		Mode:         types.ModeGreenfield,
-		TestCmd:      "npm test",
-		Specs:        []types.Spec{},
-		Instructions: []string{"write tests"},
-		Rules:        []string{"no impl"},
+		Phase:              types.PhaseRed,
+		Mode:               types.ModeGreenfield,
+		TestCmd:            "npm test",
+		ExpectedTestResult: "fail",
+		Specs:              []types.Spec{},
 	}
 
 	out, err := FormatGuidance(g, FormatJSON)
@@ -154,11 +153,10 @@ func TestFormatGuidanceJSONIncludesTestCmd(t *testing.T) {
 
 func TestFormatGuidanceJSONOmitsEmptyTestCmd(t *testing.T) {
 	g := types.Guidance{
-		Phase:        types.PhaseRed,
-		Mode:         types.ModeGreenfield,
-		Specs:        []types.Spec{},
-		Instructions: []string{"write tests"},
-		Rules:        []string{"no impl"},
+		Phase:              types.PhaseRed,
+		Mode:               types.ModeGreenfield,
+		ExpectedTestResult: "fail",
+		Specs:              []types.Spec{},
 	}
 
 	out, err := FormatGuidance(g, FormatJSON)
@@ -177,11 +175,10 @@ func TestFormatGuidanceJSONOmitsEmptyTestCmd(t *testing.T) {
 
 func TestFormatGuidanceTextIncludesNextPhase(t *testing.T) {
 	g := types.Guidance{
-		Phase:        types.PhaseRed,
-		Mode:         types.ModeGreenfield,
-		NextPhase:    types.PhaseGreen,
-		Instructions: []string{"write tests"},
-		Rules:        []string{"no impl"},
+		Phase:              types.PhaseRed,
+		Mode:               types.ModeGreenfield,
+		NextPhase:          types.PhaseGreen,
+		ExpectedTestResult: "fail",
 	}
 
 	out, err := FormatGuidance(g, FormatText)
@@ -196,11 +193,10 @@ func TestFormatGuidanceTextIncludesNextPhase(t *testing.T) {
 
 func TestFormatGuidanceTextIncludesTestCmd(t *testing.T) {
 	g := types.Guidance{
-		Phase:        types.PhaseRed,
-		Mode:         types.ModeGreenfield,
-		TestCmd:      "dotnet test",
-		Instructions: []string{"write tests"},
-		Rules:        []string{"no impl"},
+		Phase:              types.PhaseRed,
+		Mode:               types.ModeGreenfield,
+		TestCmd:            "dotnet test",
+		ExpectedTestResult: "fail",
 	}
 
 	out, err := FormatGuidance(g, FormatText)
@@ -210,6 +206,94 @@ func TestFormatGuidanceTextIncludesTestCmd(t *testing.T) {
 
 	if !strings.Contains(out, "Test Command: dotnet test") {
 		t.Errorf("text output should contain test command, got:\n%s", out)
+	}
+}
+
+func TestFormatGuidanceTextIncludesExpectedTestResult(t *testing.T) {
+	g := types.Guidance{
+		Phase:              types.PhaseRed,
+		Mode:               types.ModeGreenfield,
+		ExpectedTestResult: "fail",
+	}
+
+	out, err := FormatGuidance(g, FormatText)
+	if err != nil {
+		t.Fatalf("FormatGuidance() error: %v", err)
+	}
+
+	if !strings.Contains(out, "Expected Test Result: fail") {
+		t.Errorf("text output should contain expected test result, got:\n%s", out)
+	}
+}
+
+func TestFormatGuidanceJSONIncludesExpectedTestResult(t *testing.T) {
+	g := types.Guidance{
+		Phase:              types.PhaseRed,
+		Mode:               types.ModeGreenfield,
+		ExpectedTestResult: "fail",
+		Specs:              []types.Spec{},
+	}
+
+	out, err := FormatGuidance(g, FormatJSON)
+	if err != nil {
+		t.Fatalf("FormatGuidance() error: %v", err)
+	}
+
+	var parsed map[string]interface{}
+	if err := json.Unmarshal([]byte(out), &parsed); err != nil {
+		t.Fatalf("output is not valid JSON: %v", err)
+	}
+	if parsed["expected_test_result"] != "fail" {
+		t.Errorf("expected_test_result = %v, want 'fail'", parsed["expected_test_result"])
+	}
+}
+
+func TestFormatGuidanceJSONIncludesBlockers(t *testing.T) {
+	g := types.Guidance{
+		Phase:              types.PhaseRed,
+		Mode:               types.ModeGreenfield,
+		ExpectedTestResult: "fail",
+		Specs:              []types.Spec{},
+		Blockers:           []string{"No spec selected", "No test result recorded"},
+	}
+
+	out, err := FormatGuidance(g, FormatJSON)
+	if err != nil {
+		t.Fatalf("FormatGuidance() error: %v", err)
+	}
+
+	var parsed map[string]interface{}
+	if err := json.Unmarshal([]byte(out), &parsed); err != nil {
+		t.Fatalf("output is not valid JSON: %v", err)
+	}
+	blockers, ok := parsed["blockers"].([]interface{})
+	if !ok {
+		t.Fatal("blockers field should be present in JSON output")
+	}
+	if len(blockers) != 2 {
+		t.Errorf("blockers length = %d, want 2", len(blockers))
+	}
+}
+
+func TestFormatGuidanceJSONOmitsEmptyBlockers(t *testing.T) {
+	g := types.Guidance{
+		Phase:              types.PhaseGreen,
+		Mode:               types.ModeGreenfield,
+		ExpectedTestResult: "pass",
+		Specs:              []types.Spec{},
+	}
+
+	out, err := FormatGuidance(g, FormatJSON)
+	if err != nil {
+		t.Fatalf("FormatGuidance() error: %v", err)
+	}
+
+	var parsed map[string]interface{}
+	if err := json.Unmarshal([]byte(out), &parsed); err != nil {
+		t.Fatalf("output is not valid JSON: %v", err)
+	}
+	if _, exists := parsed["blockers"]; exists {
+		t.Error("blockers should be omitted from JSON when empty")
 	}
 }
 
@@ -264,15 +348,14 @@ func TestFormatStatusText(t *testing.T) {
 
 func TestFormatGuidanceTextSortsByID(t *testing.T) {
 	g := types.Guidance{
-		Phase: types.PhaseRed,
-		Mode:  types.ModeGreenfield,
+		Phase:              types.PhaseRed,
+		Mode:               types.ModeGreenfield,
+		ExpectedTestResult: "fail",
 		Specs: []types.Spec{
 			{ID: 3, Description: "third", Status: types.SpecStatusActive},
 			{ID: 1, Description: "first", Status: types.SpecStatusActive},
 			{ID: 2, Description: "second", Status: types.SpecStatusActive},
 		},
-		Instructions: []string{"write tests"},
-		Rules:        []string{"no impl"},
 	}
 
 	out, err := FormatGuidance(g, FormatText)
@@ -323,9 +406,6 @@ func TestFormatFullStatusText(t *testing.T) {
 	if !strings.Contains(out, "(done) feature B") {
 		t.Error("should contain done spec")
 	}
-	if !strings.Contains(out, "Next:") {
-		t.Error("should contain next action hint")
-	}
 }
 
 func TestFormatFullStatusJSON(t *testing.T) {
@@ -346,9 +426,6 @@ func TestFormatFullStatusJSON(t *testing.T) {
 	}
 	if parsed["mode"] != "greenfield" {
 		t.Errorf("mode = %v, want greenfield", parsed["mode"])
-	}
-	if parsed["next_action"] == nil {
-		t.Error("should contain next_action field")
 	}
 }
 
@@ -403,74 +480,11 @@ func TestFormatFullStatusOmitsTestCmdWhenEmpty(t *testing.T) {
 	}
 }
 
-func TestFormatFullStatusNextActionNoSpecs(t *testing.T) {
-	s := types.NewSession()
-
-	out, err := FormatFullStatus(s, FormatText)
-	if err != nil {
-		t.Fatalf("FormatFullStatus() error: %v", err)
-	}
-
-	if !strings.Contains(out, "add specs") {
-		t.Errorf("next action should suggest adding specs when none exist, got:\n%s", out)
-	}
-}
-
-func TestNextActionBatchSyntax(t *testing.T) {
-	s := types.NewSession()
-
-	out, err := FormatFullStatus(s, FormatText)
-	if err != nil {
-		t.Fatalf("FormatFullStatus() error: %v", err)
-	}
-
-	if !strings.Contains(out, `"desc1" "desc2"`) {
-		t.Errorf("next action should show batch spec syntax, got:\n%s", out)
-	}
-}
-
-func TestNextActionDonePhaseMentionsAll(t *testing.T) {
-	s := types.NewSession()
-	s.Phase = types.PhaseDone
-	s.AddSpec("feature")
-
-	out, err := FormatFullStatus(s, FormatText)
-	if err != nil {
-		t.Fatalf("FormatFullStatus() error: %v", err)
-	}
-
-	if !strings.Contains(out, "spec done --all") {
-		t.Errorf("done phase next action should mention --all flag, got:\n%s", out)
-	}
-}
-
-func TestNextActionDonePhaseAllSpecsCompleted(t *testing.T) {
-	s := types.NewSession()
-	s.Phase = types.PhaseDone
-	s.AddSpec("feature A")
-	s.AddSpec("feature B")
-	_ = s.CompleteSpec(1)
-	_ = s.CompleteSpec(2)
-
-	out, err := FormatFullStatus(s, FormatText)
-	if err != nil {
-		t.Fatalf("FormatFullStatus() error: %v", err)
-	}
-
-	if !strings.Contains(out, "all specs complete") {
-		t.Errorf("done phase with all specs completed should say 'all specs complete', got:\n%s", out)
-	}
-	if strings.Contains(out, "spec done") {
-		t.Errorf("done phase with all specs completed should NOT suggest 'spec done', got:\n%s", out)
-	}
-}
-
 func TestFormatGuidanceTextIncludesReflections(t *testing.T) {
 	g := types.Guidance{
-		Phase:        types.PhaseRefactor,
-		Mode:         types.ModeGreenfield,
-		Instructions: []string{"improve code"},
-		Rules:        []string{"no new features"},
+		Phase:              types.PhaseRefactor,
+		Mode:               types.ModeGreenfield,
+		ExpectedTestResult: "pass",
 		Reflections: []types.ReflectionQuestion{
 			{ID: 1, Question: "Can I improve tests?", Answer: "Tests are already descriptive and clear enough"},
 			{ID: 2, Question: "Are tests isolated?", Answer: ""},
@@ -498,11 +512,10 @@ func TestFormatGuidanceTextIncludesReflections(t *testing.T) {
 
 func TestFormatGuidanceJSONIncludesReflections(t *testing.T) {
 	g := types.Guidance{
-		Phase:        types.PhaseRefactor,
-		Mode:         types.ModeGreenfield,
-		Specs:        []types.Spec{},
-		Instructions: []string{"improve code"},
-		Rules:        []string{"no new features"},
+		Phase:              types.PhaseRefactor,
+		Mode:               types.ModeGreenfield,
+		ExpectedTestResult: "pass",
+		Specs:              []types.Spec{},
 		Reflections: []types.ReflectionQuestion{
 			{ID: 1, Question: "Q1", Answer: "answered with enough words here"},
 			{ID: 2, Question: "Q2", Answer: ""},
@@ -530,11 +543,10 @@ func TestFormatGuidanceJSONIncludesReflections(t *testing.T) {
 
 func TestFormatGuidanceJSONOmitsEmptyReflections(t *testing.T) {
 	g := types.Guidance{
-		Phase:        types.PhaseRed,
-		Mode:         types.ModeGreenfield,
-		Specs:        []types.Spec{},
-		Instructions: []string{"write tests"},
-		Rules:        []string{"no impl"},
+		Phase:              types.PhaseRed,
+		Mode:               types.ModeGreenfield,
+		ExpectedTestResult: "fail",
+		Specs:              []types.Spec{},
 	}
 
 	out, err := FormatGuidance(g, FormatJSON)
@@ -554,10 +566,9 @@ func TestFormatGuidanceJSONOmitsEmptyReflections(t *testing.T) {
 
 func TestFormatGuidanceTextNoReflectionsSection(t *testing.T) {
 	g := types.Guidance{
-		Phase:        types.PhaseRed,
-		Mode:         types.ModeGreenfield,
-		Instructions: []string{"write tests"},
-		Rules:        []string{"no impl"},
+		Phase:              types.PhaseRed,
+		Mode:               types.ModeGreenfield,
+		ExpectedTestResult: "fail",
 	}
 
 	out, err := FormatGuidance(g, FormatText)
@@ -572,15 +583,14 @@ func TestFormatGuidanceTextNoReflectionsSection(t *testing.T) {
 
 func TestFormatGuidanceTextShowsCurrentSpec(t *testing.T) {
 	g := types.Guidance{
-		Phase:       types.PhaseRed,
-		Mode:        types.ModeGreenfield,
-		CurrentSpec: &types.Spec{ID: 2, Description: "my current spec", Status: types.SpecStatusActive},
-		Iteration:   3,
+		Phase:              types.PhaseRed,
+		Mode:               types.ModeGreenfield,
+		ExpectedTestResult: "fail",
+		CurrentSpec:        &types.Spec{ID: 2, Description: "my current spec", Status: types.SpecStatusActive},
+		Iteration:          3,
 		Specs: []types.Spec{
 			{ID: 2, Description: "my current spec", Status: types.SpecStatusActive},
 		},
-		Instructions: []string{"write tests"},
-		Rules:        []string{"no impl"},
 	}
 
 	out, err := FormatGuidance(g, FormatText)
@@ -598,14 +608,13 @@ func TestFormatGuidanceTextShowsCurrentSpec(t *testing.T) {
 
 func TestFormatGuidanceJSONIncludesCurrentSpec(t *testing.T) {
 	g := types.Guidance{
-		Phase:        types.PhaseRed,
-		Mode:         types.ModeGreenfield,
-		CurrentSpec:  &types.Spec{ID: 1, Description: "test spec", Status: types.SpecStatusActive},
-		Iteration:    2,
-		TotalSpecs:   3,
-		Specs:        []types.Spec{},
-		Instructions: []string{"write tests"},
-		Rules:        []string{"no impl"},
+		Phase:              types.PhaseRed,
+		Mode:               types.ModeGreenfield,
+		ExpectedTestResult: "fail",
+		CurrentSpec:        &types.Spec{ID: 1, Description: "test spec", Status: types.SpecStatusActive},
+		Iteration:          2,
+		TotalSpecs:         3,
+		Specs:              []types.Spec{},
 	}
 
 	out, err := FormatGuidance(g, FormatJSON)
@@ -685,7 +694,6 @@ func TestFormatStatusTextMarksCurrentSpec(t *testing.T) {
 	if !strings.Contains(out, "(current)") {
 		t.Errorf("should mark current spec with (current), got:\n%s", out)
 	}
-	// Non-current specs should not have the arrow
 	if strings.Contains(out, "→ [1]") {
 		t.Errorf("non-current spec should not have arrow, got:\n%s", out)
 	}
@@ -784,7 +792,7 @@ func TestFormatResumeTextRefactorWithPendingReflections(t *testing.T) {
 	if !strings.Contains(out, "BLOCKERS:") {
 		t.Errorf("text output should show blockers with pending reflections, got:\n%s", out)
 	}
-	if !strings.Contains(out, "2 of 3 reflection questions unanswered") {
+	if !strings.Contains(out, "2 reflection questions unanswered") {
 		t.Errorf("text output should report pending count, got:\n%s", out)
 	}
 	if !strings.Contains(out, `tdd-ai refactor reflect 2`) {
@@ -803,9 +811,7 @@ func TestFormatResumeTextGreenPhase(t *testing.T) {
 		t.Fatalf("FormatResume() error: %v", err)
 	}
 
-	if strings.Contains(out, "BLOCKERS:") {
-		t.Errorf("GREEN phase should have no blockers, got:\n%s", out)
-	}
+	// GREEN phase with no test result will have blockers now
 	if !strings.Contains(out, "tdd-ai test && tdd-ai phase next") {
 		t.Errorf("GREEN next action should be test && phase next, got:\n%s", out)
 	}
@@ -873,11 +879,11 @@ func TestFormatResumeTextShowsRecentEvents(t *testing.T) {
 	}
 }
 
-func TestFormatResumeJSONOmitsBlockersWhenNone(t *testing.T) {
+func TestFormatResumeJSONIncludesBlockers(t *testing.T) {
 	s := types.NewSession()
-	s.Phase = types.PhaseGreen
-	s.AddSpec("feature")
-	_ = s.SetCurrentSpec(1)
+	s.AddSpec("feature A")
+	s.AddSpec("feature B")
+	// No spec selected — should have blockers
 
 	out, err := FormatResume(s, FormatJSON)
 	if err != nil {
@@ -888,8 +894,12 @@ func TestFormatResumeJSONOmitsBlockersWhenNone(t *testing.T) {
 	if err := json.Unmarshal([]byte(out), &parsed); err != nil {
 		t.Fatalf("output is not valid JSON: %v", err)
 	}
-	if _, exists := parsed["blockers"]; exists {
-		t.Error("blockers should be omitted from JSON when there are none")
+	blockers, ok := parsed["blockers"].([]interface{})
+	if !ok {
+		t.Fatal("blockers should be present when there are blockers")
+	}
+	if len(blockers) == 0 {
+		t.Error("should have at least one blocker when no spec selected")
 	}
 }
 
@@ -922,6 +932,7 @@ func TestFormatResumeTextRefactorAllAnswered(t *testing.T) {
 	s.Phase = types.PhaseRefactor
 	s.AddSpec("feature A")
 	_ = s.SetCurrentSpec(1)
+	s.LastTestResult = "pass"
 	s.Reflections = []types.ReflectionQuestion{
 		{ID: 1, Question: "Q1", Answer: "answered with enough words here"},
 		{ID: 2, Question: "Q2", Answer: "also answered with enough words"},
@@ -933,7 +944,7 @@ func TestFormatResumeTextRefactorAllAnswered(t *testing.T) {
 	}
 
 	if strings.Contains(out, "BLOCKERS:") {
-		t.Errorf("REFACTOR with all reflections answered should have no blockers, got:\n%s", out)
+		t.Errorf("REFACTOR with all reflections answered and pass result should have no blockers, got:\n%s", out)
 	}
 	if !strings.Contains(out, "tdd-ai test && tdd-ai phase next") {
 		t.Errorf("all reflections answered: next action should be test && phase next, got:\n%s", out)
@@ -942,7 +953,6 @@ func TestFormatResumeTextRefactorAllAnswered(t *testing.T) {
 
 func TestFormatStatusTextSortsByID(t *testing.T) {
 	s := types.NewSession()
-	// Add specs in a way that results in non-sequential order
 	s.Specs = []types.Spec{
 		{ID: 5, Description: "fifth", Status: types.SpecStatusActive},
 		{ID: 2, Description: "second", Status: types.SpecStatusCompleted},

@@ -48,12 +48,12 @@ Use --test-result to validate that tests are in the expected state before advanc
 
 		current := s.Phase
 		if current == types.PhaseRed && len(s.ActiveSpecs()) == 0 {
-			return fmt.Errorf("cannot advance from red phase: no active specs. Add specs with 'tdd-ai spec add'")
+			return fmt.Errorf("cannot advance: no active specs")
 		}
 
 		// Require a spec to be picked before leaving RED
 		if current == types.PhaseRed && s.CurrentSpecID == nil {
-			return fmt.Errorf("cannot advance from red phase: no spec selected. Pick one with 'tdd-ai spec pick <id>'")
+			return fmt.Errorf("cannot advance: no spec selected")
 		}
 
 		mode := s.GetMode()
@@ -83,7 +83,7 @@ Use --test-result to validate that tests are in the expected state before advanc
 		// Block advancing from refactor when reflection questions are unanswered
 		if current == types.PhaseRefactor && len(s.Reflections) > 0 && !s.AllReflectionsAnswered() {
 			pending := s.PendingReflections()
-			return fmt.Errorf("cannot advance: %d reflection question(s) unanswered. Use 'tdd-ai refactor status' to see them", len(pending))
+			return fmt.Errorf("cannot advance: %d reflection question(s) unanswered", len(pending))
 		}
 
 		// Auto-complete current spec when leaving refactor
@@ -129,16 +129,12 @@ Use --test-result to validate that tests are in the expected state before advanc
 
 		fmt.Fprintf(cmd.OutOrStdout(), "Phase: %s -> %s\n", current, next)
 
-		if next == types.PhaseDone {
-			fmt.Fprintln(cmd.OutOrStdout(), "Next: mark completed specs with 'tdd-ai spec done --all' or 'tdd-ai spec done <id>'")
-		} else if next == types.PhaseRed && hasRemaining {
+		if next == types.PhaseRed && hasRemaining {
 			remaining := s.ActiveSpecs()
-			fmt.Fprintf(cmd.OutOrStdout(), "%d spec(s) remaining. Pick the next one: tdd-ai spec pick <id>\n", len(remaining))
+			fmt.Fprintf(cmd.OutOrStdout(), "%d spec(s) remaining\n", len(remaining))
 			for _, spec := range remaining {
 				fmt.Fprintf(cmd.OutOrStdout(), "  [%d] %s\n", spec.ID, spec.Description)
 			}
-		} else {
-			fmt.Fprintln(cmd.OutOrStdout(), "Next: run 'tdd-ai guide --format json' for phase instructions")
 		}
 		return nil
 	},
@@ -181,7 +177,6 @@ var phaseSetCmd = &cobra.Command{
 		}
 
 		fmt.Fprintf(cmd.OutOrStdout(), "Phase set to: %s\n", p)
-		fmt.Fprintln(cmd.OutOrStdout(), "Next: run 'tdd-ai guide --format json' for phase instructions")
 		return nil
 	},
 }

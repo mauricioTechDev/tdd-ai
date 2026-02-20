@@ -41,7 +41,6 @@ type sessionSummary struct {
 // commandsOutput is the top-level structure for tdd-ai commands.
 type commandsOutput struct {
 	Version     string          `json:"version"`
-	Workflow    []string        `json:"workflow"`
 	Commands    []commandEntry  `json:"commands"`
 	GlobalFlags []commandFlag   `json:"global_flags"`
 	Session     *sessionSummary `json:"session"`
@@ -83,7 +82,6 @@ func init() {
 func buildCommandsOutput() commandsOutput {
 	output := commandsOutput{
 		Version:  version,
-		Workflow: workflowSteps(),
 		Commands: buildCommandList(rootCmd),
 	}
 
@@ -115,21 +113,6 @@ func buildCommandsOutput() commandsOutput {
 	}
 
 	return output
-}
-
-func workflowSteps() []string {
-	return []string{
-		"1. tdd-ai init [--retrofit] [--test-cmd \"...\"]",
-		"2. tdd-ai spec add \"desc1\" \"desc2\" ...",
-		"3. tdd-ai spec pick <id> (choose one spec to work on)",
-		"4. tdd-ai guide (get phase instructions for the picked spec)",
-		"5. Write code following the instructions",
-		"6. tdd-ai test (run tests and record result)",
-		"7. tdd-ai phase next (advance when phase criteria met)",
-		"8. In refactor: tdd-ai refactor reflect <n> --answer \"...\" (answer all reflection questions)",
-		"9. After refactor: phase next loops back to RED for the next spec (or DONE if all specs complete)",
-		"10. tdd-ai complete (escape hatch: finish cycle, mark all remaining specs done)",
-	}
 }
 
 func buildCommandList(root *cobra.Command) []commandEntry {
@@ -192,14 +175,7 @@ func entryFrom(c *cobra.Command, parentName string) commandEntry {
 func formatCommandsText(output commandsOutput) string {
 	var b strings.Builder
 
-	fmt.Fprintf(&b, "tdd-ai %s - TDD guardrails for AI coding agents\n\n", output.Version)
-
-	// Workflow
-	b.WriteString("Workflow:\n")
-	for _, step := range output.Workflow {
-		fmt.Fprintf(&b, "  %s\n", step)
-	}
-	b.WriteString("\n")
+	fmt.Fprintf(&b, "tdd-ai %s - TDD state machine for AI coding agents\n\n", output.Version)
 
 	// Commands
 	b.WriteString("Commands:\n")
