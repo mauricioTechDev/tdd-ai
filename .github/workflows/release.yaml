@@ -4,6 +4,17 @@ on:
   push:
     tags:
       - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to publish (e.g. v0.4.8)"
+        required: true
+        type: string
+      skip_goreleaser:
+        description: "Skip goreleaser (use when GitHub release assets already exist)"
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -13,6 +24,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.tag || github.ref }}
       - uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
@@ -21,11 +34,13 @@ jobs:
 
   goreleaser:
     needs: test
+    if: github.event_name == 'push' || !inputs.skip_goreleaser
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          ref: ${{ inputs.tag || github.ref }}
 
       - uses: actions/setup-go@v6
         with:
@@ -41,9 +56,12 @@ jobs:
 
   npm-publish:
     needs: goreleaser
+    if: always() && needs.goreleaser.result != 'failure' && needs.goreleaser.result != 'cancelled'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.tag || github.ref }}
 
       - uses: actions/setup-node@v6
         with:
@@ -52,7 +70,8 @@ jobs:
 
       - name: Sync npm version from tag
         run: |
-          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          REF="${{ inputs.tag || github.ref_name }}"
+          TAG_VERSION="${REF#v}"
           cd npm
           node -e "
             const pkg = require('./package.json');
