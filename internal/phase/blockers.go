@@ -6,6 +6,21 @@ import (
 	"github.com/macosta/tdd-ai/internal/types"
 )
 
+// checkTestResult returns a blocker if the test result is missing or doesn't match
+// the expected result for the given phase and mode.
+func checkTestResult(s *types.Session, phase types.Phase, mode types.Mode) []string {
+	if s.LastTestResult == "" {
+		return []string{"No test result recorded"}
+	}
+	expected := ExpectedTestResult(phase, mode)
+	if s.LastTestResult != expected {
+		return []string{
+			fmt.Sprintf("Test result '%s' does not match expected '%s'", s.LastTestResult, expected),
+		}
+	}
+	return nil
+}
+
 // GetBlockers returns conditions preventing advancement from the current phase.
 func GetBlockers(s *types.Session) []string {
 	var blockers []string
@@ -19,38 +34,11 @@ func GetBlockers(s *types.Session) []string {
 		if s.CurrentSpecID == nil && len(s.ActiveSpecs()) > 0 {
 			blockers = append(blockers, "No spec selected")
 		}
-		if s.LastTestResult == "" {
-			blockers = append(blockers, "No test result recorded")
-		} else {
-			expected := ExpectedTestResult(s.Phase, mode)
-			if s.LastTestResult != expected {
-				blockers = append(blockers,
-					fmt.Sprintf("Test result '%s' does not match expected '%s'", s.LastTestResult, expected),
-				)
-			}
-		}
+		blockers = append(blockers, checkTestResult(s, s.Phase, mode)...)
 	case types.PhaseGreen:
-		if s.LastTestResult == "" {
-			blockers = append(blockers, "No test result recorded")
-		} else {
-			expected := ExpectedTestResult(s.Phase, mode)
-			if s.LastTestResult != expected {
-				blockers = append(blockers,
-					fmt.Sprintf("Test result '%s' does not match expected '%s'", s.LastTestResult, expected),
-				)
-			}
-		}
+		blockers = append(blockers, checkTestResult(s, s.Phase, mode)...)
 	case types.PhaseRefactor:
-		if s.LastTestResult == "" {
-			blockers = append(blockers, "No test result recorded")
-		} else {
-			expected := ExpectedTestResult(s.Phase, mode)
-			if s.LastTestResult != expected {
-				blockers = append(blockers,
-					fmt.Sprintf("Test result '%s' does not match expected '%s'", s.LastTestResult, expected),
-				)
-			}
-		}
+		blockers = append(blockers, checkTestResult(s, s.Phase, mode)...)
 		pending := s.PendingReflections()
 		if len(pending) > 0 {
 			blockers = append(blockers,

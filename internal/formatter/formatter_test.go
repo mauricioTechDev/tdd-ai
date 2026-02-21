@@ -811,7 +811,10 @@ func TestFormatResumeTextGreenPhase(t *testing.T) {
 		t.Fatalf("FormatResume() error: %v", err)
 	}
 
-	// GREEN phase with no test result will have blockers now
+	// GREEN phase with no test result should show blocker
+	if !strings.Contains(out, "No test result recorded") {
+		t.Errorf("GREEN with no test result should show blocker, got:\n%s", out)
+	}
 	if !strings.Contains(out, "tdd-ai test && tdd-ai phase next") {
 		t.Errorf("GREEN next action should be test && phase next, got:\n%s", out)
 	}
