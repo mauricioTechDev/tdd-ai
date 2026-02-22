@@ -31,9 +31,6 @@ func TestCommandsOutputJSON(t *testing.T) {
 	if parsed.Version == "" {
 		t.Error("version should not be empty")
 	}
-	if len(parsed.Workflow) == 0 {
-		t.Error("workflow should not be empty")
-	}
 	if len(parsed.Commands) == 0 {
 		t.Error("commands should not be empty")
 	}
@@ -48,9 +45,6 @@ func TestCommandsOutputText(t *testing.T) {
 	if !strings.Contains(out, "tdd-ai") {
 		t.Error("text output should contain 'tdd-ai'")
 	}
-	if !strings.Contains(out, "Workflow:") {
-		t.Error("text output should contain 'Workflow:'")
-	}
 	if !strings.Contains(out, "Commands:") {
 		t.Error("text output should contain 'Commands:'")
 	}
@@ -62,6 +56,14 @@ func TestCommandsOutputText(t *testing.T) {
 	}
 }
 
+func TestCommandsOutputTextNoWorkflow(t *testing.T) {
+	out := executeCommands(t, "--format", "text")
+
+	if strings.Contains(out, "Workflow:") {
+		t.Error("text output should not contain prescriptive 'Workflow:' section")
+	}
+}
+
 func TestCommandsIncludesAllCommands(t *testing.T) {
 	output := buildCommandsOutput()
 
@@ -70,6 +72,7 @@ func TestCommandsIncludesAllCommands(t *testing.T) {
 		"phase", "phase next", "phase set",
 		"guide", "test", "complete", "status", "resume", "reset", "version",
 		"refactor", "refactor reflect", "refactor status",
+		"blockers",
 	}
 
 	commandNames := make(map[string]bool)
@@ -113,33 +116,6 @@ func TestCommandsFlagsPresent(t *testing.T) {
 		}
 	}
 	t.Error("init command not found")
-}
-
-func TestCommandsWorkflowSteps(t *testing.T) {
-	steps := workflowSteps()
-
-	if len(steps) != 10 {
-		t.Errorf("workflow should have 10 steps, got %d", len(steps))
-	}
-
-	if !strings.Contains(steps[0], "init") {
-		t.Error("first workflow step should mention init")
-	}
-
-	if !strings.Contains(steps[len(steps)-1], "complete") {
-		t.Error("last workflow step should mention complete")
-	}
-
-	foundReflect := false
-	for _, step := range steps {
-		if strings.Contains(step, "refactor reflect") {
-			foundReflect = true
-			break
-		}
-	}
-	if !foundReflect {
-		t.Error("workflow should include refactor reflect step")
-	}
 }
 
 func TestCommandsGlobalFormatFlag(t *testing.T) {
@@ -210,8 +186,8 @@ func TestCommandsTextDefaultsTTY(t *testing.T) {
 	}
 
 	out := buf.String()
-	if !strings.Contains(out, "Workflow:") {
-		t.Errorf("TTY output should be text format, got:\n%s", out)
+	if !strings.Contains(out, "Commands:") {
+		t.Errorf("TTY output should be text format with commands section, got:\n%s", out)
 	}
 }
 
@@ -234,7 +210,7 @@ func TestFormatFlagOverridesTTYDetection(t *testing.T) {
 
 	out := buf.String()
 	// Even though non-TTY, explicit --format text should produce text
-	if !strings.Contains(out, "Workflow:") {
+	if !strings.Contains(out, "Commands:") {
 		t.Errorf("explicit --format text should produce text even in non-TTY, got:\n%s", out)
 	}
 }

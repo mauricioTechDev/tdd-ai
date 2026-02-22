@@ -56,13 +56,10 @@ command and auto-populates the test result for 'phase next'.`,
 			return err
 		}
 
-		fmt.Fprintf(cmd.OutOrStdout(), "TDD session initialized (phase: %s, mode: %s)\n", s.Phase, s.GetMode())
+		fmt.Fprintf(cmd.OutOrStdout(), "Session initialized (phase: %s, mode: %s)\n", s.Phase, s.GetMode())
 		if s.TestCmd != "" {
 			fmt.Fprintf(cmd.OutOrStdout(), "Test command: %s\n", s.TestCmd)
 		}
-		fmt.Fprintln(cmd.OutOrStdout(), "Next: add specs with 'tdd-ai spec add \"desc1\" \"desc2\" ...'")
-		fmt.Fprintln(cmd.OutOrStdout(), "Available commands: spec add, guide, test, phase next, complete, status, reset")
-		fmt.Fprintln(cmd.OutOrStdout(), "Run 'tdd-ai commands' for full reference.")
 		return nil
 	},
 }

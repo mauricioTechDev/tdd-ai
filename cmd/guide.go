@@ -11,8 +11,9 @@ import (
 
 var guideCmd = &cobra.Command{
 	Use:   "guide",
-	Short: "Get phase-appropriate TDD instructions for the AI agent",
-	Long: `Outputs structured guidance based on the current TDD phase.
+	Short: "Show current TDD state: phase, specs, blockers, and expected test result",
+	Long: `Outputs the current TDD session state including phase, mode, active specs,
+expected test result, blockers preventing advancement, and reflections.
 
 Use --format json for machine-readable output that AI agents can parse.
 Use --format text (default) for human-readable output.`,
