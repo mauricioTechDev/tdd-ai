@@ -1,0 +1,26 @@
+{
+  "cli_version": "0.4.5",
+  "checkpoint_id": "4536b8fbe3b7",
+  "strategy": "manual-commit",
+  "branch": "docs/cloud-analytics-plan-review",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "future-improvements-of-the-project/cloud-analytics-plan.md"
+  ],
+  "sessions": [
+    {
+      "metadata": "/45/36b8fbe3b7/0/metadata.json",
+      "transcript": "/45/36b8fbe3b7/0/full.jsonl",
+      "context": "/45/36b8fbe3b7/0/context.md",
+      "content_hash": "/45/36b8fbe3b7/0/content_hash.txt",
+      "prompt": "/45/36b8fbe3b7/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 280,
+    "cache_creation_tokens": 15268,
+    "cache_read_tokens": 587617,
+    "output_tokens": 2675,
+    "api_call_count": 20
+  }
+}

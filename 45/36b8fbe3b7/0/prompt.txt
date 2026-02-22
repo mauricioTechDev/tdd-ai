@@ -1,0 +1,138 @@
+what are your thoughts on this plan # tdd-ai — Product Plan
+
+## What It Is
+
+tdd-ai is an open source CLI tool that helps developers work with AI agents in a test-driven development workflow. Today it works well but sessions are stateless — every run starts fresh with no memory of past work.
+
+## The Problem We're Solving
+
+Developers using tdd-ai lose context between sessions. There's no way to look back at past workflows, understand patterns in how you work, or measure how your TDD practice is evolving over time.
+
+## The Vision
+
+Add an optional cloud layer that persists session history and surfaces analytics — while keeping the CLI fully open source and self-hostable.
+
+---
+
+## Product Tiers
+
+### Community Edition (Free, Open Source)
+- Full CLI functionality, unchanged
+- Self-hostable dashboard and backend (Docker Compose)
+- Local session history stored on disk
+- Basic analytics viewable locally
+
+### Managed Cloud (Paid, ~$8–12/month)
+- Everything in Community Edition
+- Hosted dashboard, no infra to manage
+- Automatic backups and updates
+- Session history synced across machines
+- Team/org dashboard (future)
+
+The managed cloud charges for **convenience**, not features. The self-hosted version will be capable enough for anyone willing to run it themselves.
+
+---
+
+## How It Works
+
+Users opt in to cloud sync with `tdd-ai login` or a `--sync` flag. At the end of each session, the CLI sends a JSON event to the backend. Nothing changes about the core TDD workflow.
+
+**Data captured per session:**
+- Timestamp and duration
+- Files and modules touched
+- Number of AI iterations
+- Pass/fail outcome
+- Language and framework detected
+
+---
+
+## Dashboard & Analytics
+
+The web dashboard (open source, self-hostable) shows:
+
+- Session history timeline
+- Which files/modules you TDD most frequently
+- Average iterations to green per session
+- Trends in session length and frequency
+- Heatmap of activity over time
+
+---
+
+## Tech Stack
+
+Kept lean and cheap to run:
+
+- **CLI**: Go (existing)
+- **Backend API**: Cloudflare Workers or Vercel (generous free tier)
+- **Database**: Supabase (free tier covers early growth)
+- **Dashboard**: Next.js or lightweight static HTML
+- **Self-host**: Docker Compose with Postgres + a Node API
+
+---
+
+## Business Model
+
+- CLI stays free and open source forever
+- Managed cloud is the revenue driver
+- Self-hosting is supported and documented — users who self-host were never going to pay, and they become evangelists
+- No AI API costs — the product is pure data persistence and visualization
+
+---
+
+## Principles
+
+- Open first: the community edition is never crippled
+- Self-hosting is possible but the managed version is obviously easier
+- No vendor lock-in: users can export all their data
+- Privacy conscious: users opt in to sync, nothing is sent without consent
+
+---
+
+## Next Steps
+
+1. Define the session data schema
+2. Add `tdd-ai login` and `--sync` flag to the CLI
+3. Build the backend API (thin layer over Supabase)
+4. Build a basic dashboard (session list + a few charts)
+5. Package the self-host setup as a Docker Compose file
+6. Soft launch to existing tdd-ai users
+
+---
+
+lets make a future-improvments-of-the-projects dir and add this reponse to the plan in that dir
+
+---
+
+okay lets create a new branch and write a clear message about the changes in the branch and push the new branch
+
+---
+
+so its seems that https://entire.io is already going to be doing what im doing you can see here https://docs.entire.io/core-concepts that the ideas is taht with all comits all the changes so the state of evything im manageing the tdd-ai cli will be tracked by entity I ahve it install d locally and when I made a commit chang eup to my pr
+
+---
+
+yea I think thats a good option for now but in that case when should I be worried about monetization
+
+---
+
+is there a way for me to self host entire
+
+---
+
+so the entire.io https://docs.entire.io/web/dashboard is a ui representation connected to your repos of what I have in my .entire dir
+
+---
+
+so they dont require you to pay for anything when you sign up of have eny upselling when your in but how do you see them trying to monative this later on keep in the fure of AI gettign saprter
+
+---
+
+so this is very similiar to my idae but mine is more focuesd around tdd and allowing ai to have tight iterattion loops in order to best validate the aysmetrc of verification which I realy agrea with https://www.jasonwei.net/blog/asymmetry-of-verification-and-verifiers-law
+
+---
+
+I like this lets update the @future-improvements-of-the-project/cloud-analytics-plan.md with all this additional information adn I do want to lean more into tdd-ai
+
+---
+
+yes
