@@ -16,7 +16,7 @@ LLMs are excellent at writing tests and code. What they lack is **discipline**. 
 
 ## The Solution
 
-`tdd-ai` is a TDD state machine that tracks what to build, enforces the red-green-refactor cycle, and gives the AI structured instructions at each phase. The AI agent calls the CLI, reads the guidance, does the work, then checks back in.
+`tdd-ai` is a TDD state machine that tracks what to build, enforces the red-green-refactor cycle, and surfaces structured state at each phase. The AI agent calls the CLI, reads the current state, decides what to do, does the work, then checks back in.
 
 **It does not run tests.** The AI agent runs tests itself using whatever framework the project uses (`npm test`, `go test`, `pytest`, `cargo test`, etc.). This keeps the tool completely framework-agnostic.
 
@@ -38,13 +38,14 @@ tdd-ai spec add "Calculate shipping cost based on weight" "Free shipping over $5
 # 3. Pick a spec to work on
 tdd-ai spec pick 1
 
-# 4. Get instructions for the current phase (starts at red)
+# 4. Check current phase state (starts at red)
 tdd-ai guide --format json
+tdd-ai blockers --format json
 
 # 5. After writing tests and confirming they fail, advance
 tdd-ai phase next --test-result fail
 
-# 6. Get green phase instructions, write minimal implementation
+# 6. Check state — now in green phase, write minimal implementation
 tdd-ai guide --format json
 
 # 7. After implementation passes all tests, advance
@@ -79,10 +80,11 @@ When implementing any feature, use the tdd-ai CLI to follow strict TDD:
 1. Run `tdd-ai init` to start a session (skip if .tdd-ai.json already exists)
 2. Run `tdd-ai spec add "<requirement>"` for each requirement
 3. Run `tdd-ai spec pick <id>` to pick ONE spec to work on
-4. Run `tdd-ai guide --format json` to get phase instructions
-5. Follow the instructions and rules EXACTLY
-6. Run `tdd-ai phase next` when the current phase is complete
-7. Repeat steps 4-6 — after REFACTOR, the current spec is auto-completed and the loop continues
+4. Run `tdd-ai guide --format json` to read current phase state
+5. Do the work appropriate for the phase (red: failing tests, green: minimal impl, refactor: clean up)
+6. Run `tdd-ai blockers --format json` to see what's blocking advancement
+7. Run `tdd-ai phase next` when blockers are resolved
+8. Repeat from step 4 — after REFACTOR, the current spec is auto-completed and the loop continues
 ```
 
 ### GitHub Copilot
@@ -98,9 +100,10 @@ Before implementing any feature, follow this workflow:
 1. Run `tdd-ai init` if no session exists
 2. Add specs with `tdd-ai spec add "<requirement>"`
 3. Pick a spec with `tdd-ai spec pick <id>`
-4. Check `tdd-ai guide --format json` for phase-specific instructions
-5. Follow the instructions exactly -- do not skip phases
-6. Advance with `tdd-ai phase next` when each phase is complete
+4. Check `tdd-ai guide --format json` for current phase state
+5. Do the work for the current phase — do not skip phases
+6. Run `tdd-ai blockers --format json` to see what's blocking advancement
+7. Advance with `tdd-ai phase next` when blockers are resolved
 ```
 
 ### Claude Code
@@ -111,8 +114,9 @@ Add to `CLAUDE.md`:
 ## TDD Workflow
 
 Use the `tdd-ai` CLI to enforce strict TDD when implementing features.
-Run `tdd-ai guide --format json` before writing any code.
-Follow the phase instructions exactly. Advance with `tdd-ai phase next`.
+Run `tdd-ai guide --format json` to check current phase state.
+Run `tdd-ai blockers --format json` to see what's blocking advancement.
+Advance with `tdd-ai phase next` when blockers are resolved.
 Do not skip phases or write implementation before tests fail.
 ```
 
@@ -122,8 +126,9 @@ Add to `.windsurfrules`:
 
 ```
 When implementing features, use the tdd-ai CLI for TDD workflow.
-Run `tdd-ai guide --format json` before writing any code.
-Follow the phase instructions exactly. Advance with `tdd-ai phase next`.
+Run `tdd-ai guide --format json` to check current phase state.
+Run `tdd-ai blockers --format json` to see what's blocking advancement.
+Advance with `tdd-ai phase next` when blockers are resolved.
 Do not skip phases or write implementation before tests fail.
 ```
 
@@ -133,7 +138,7 @@ Any AI tool with terminal access works. Include the workflow instructions in you
 
 ## How It Works
 
-The CLI guides the AI through each TDD phase with structured JSON output:
+The CLI provides structured state at each TDD phase. The agent reads the state and decides what to do:
 
 ```json
 {
@@ -155,22 +160,24 @@ The CLI guides the AI through each TDD phase with structured JSON output:
   },
   "iteration": 1,
   "total_specs": 2,
-  "instructions": [
-    "Write a failing test for spec [1]: Calculate shipping cost based on weight",
-    "Cover happy path, edge cases, and error conditions for this spec.",
-    "Run the project's test command to verify the new test FAILS.",
-    "Do NOT write any implementation code yet.",
-    "When the test is written and confirmed failing, run: tdd-ai test && tdd-ai phase next (test result is stored and auto-used)"
-  ],
-  "rules": [
-    "DO NOT create implementation files.",
-    "DO NOT write skeleton or stub implementations.",
-    "Tests must assert specific expected values, not just 'does not throw'."
+  "expected_test_result": "fail",
+  "blockers": [
+    "No test result recorded"
   ]
 }
 ```
 
-The AI reads the `instructions` and `rules`, does the work, then advances to the next phase. The cycle continues until all phases are complete.
+The `expected_test_result` tells the agent what outcome tests should produce. The `blockers` list tells the agent what must be resolved before `phase next` will succeed. Use `tdd-ai blockers --format json` to check blockers at any time:
+
+```json
+{
+  "phase": "red",
+  "blockers": ["No spec selected", "No test result recorded"],
+  "can_advance": false
+}
+```
+
+The agent reads the state, does the work, checks blockers, then advances to the next phase. The state machine enforces correctness — if blockers remain, `phase next` fails. The cycle continues until all phases are complete.
 
 ## Two Modes
 
@@ -195,7 +202,8 @@ tdd-ai init --retrofit
 | `tdd-ai spec list` | List all specs with status |
 | `tdd-ai spec pick <id>` | Pick a spec to work on in the current iteration |
 | `tdd-ai spec done <id> [...]` | Mark specs as completed |
-| `tdd-ai guide` | Get phase-appropriate instructions |
+| `tdd-ai blockers` | Show what's preventing phase advancement |
+| `tdd-ai guide` | Get current phase state and context |
 | `tdd-ai phase next` | Advance to next phase |
 | `tdd-ai test` | Run configured test command |
 | `tdd-ai refactor` | Show refactor reflection status |

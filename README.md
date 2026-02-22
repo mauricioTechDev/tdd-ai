@@ -11,7 +11,7 @@ LLMs are excellent at writing tests and code. What they lack is **discipline**. 
 - Skip the red phase and never verify that tests actually fail before passing
 - Add features nobody asked for instead of implementing the minimum to pass
 
-`tdd-ai` fixes this. It is a TDD state machine that tracks what to build, enforces the red-green-refactor cycle, and gives the AI structured instructions at each phase. The AI agent calls the CLI, reads the guidance, does the work, then checks back in.
+`tdd-ai` fixes this. It is a TDD state machine that tracks what to build, enforces the red-green-refactor cycle, and surfaces structured state at each phase. The AI agent calls the CLI, reads the current state, decides what to do, does the work, then checks back in.
 
 **It does not run tests.** The AI agent runs tests itself using whatever framework the project uses (`npm test`, `go test`, `pytest`, `cargo test`, etc.). This keeps the tool completely framework-agnostic -- it works with any language, any test runner, any AI agent.
 
@@ -84,14 +84,15 @@ tdd-ai spec add "Calculate shipping cost based on weight" "Free shipping over $5
 # 3. Pick a spec to work on
 tdd-ai spec pick 1
 
-# 4. Get instructions for the current phase (starts at red)
-tdd-ai guide
+# 4. Check current state and blockers (starts at red)
+tdd-ai guide --format json
+tdd-ai blockers --format json
 
 # 5. After writing tests and confirming they fail, advance
 tdd-ai phase next --test-result fail
 
-# 6. Get green phase instructions
-tdd-ai guide
+# 6. Check state — now in green phase
+tdd-ai guide --format json
 
 # 7. After implementation passes all tests, advance
 tdd-ai phase next --test-result pass
@@ -121,7 +122,8 @@ tdd-ai phase next --test-result pass
 | `tdd-ai phase next` | Advance to next phase |
 | `tdd-ai phase next --test-result pass\|fail` | Advance with test result validation |
 | `tdd-ai phase set <phase>` | Manually set phase (red/green/refactor/done) |
-| `tdd-ai guide` | Get phase-appropriate instructions |
+| `tdd-ai blockers` | Show what's preventing phase advancement |
+| `tdd-ai guide` | Get current phase state and context |
 | `tdd-ai test` | Run configured test command and record result |
 | `tdd-ai refactor` | Show refactor reflection status |
 | `tdd-ai refactor reflect <n> --answer "..."` | Answer a reflection question |
@@ -214,7 +216,7 @@ When `--test-result` is omitted and no stored test result exists, a warning is p
 
 ## Using tdd-ai with AI Agents
 
-The core idea: instead of hoping the AI follows TDD, you give it a CLI that **tells it what to do** at each step. The AI calls `tdd-ai guide`, reads the instructions, does the work, then advances the phase.
+The core idea: instead of hoping the AI follows TDD, you give it a CLI that **enforces it through state and blockers**. The AI checks the current phase state, decides what to do, does the work, then advances the phase. The CLI guarantees correctness — if tests didn't fail in RED, `phase next` won't succeed.
 
 ### The Prompt
 
@@ -228,15 +230,13 @@ Use the tdd-ai CLI to follow strict TDD. Here is the workflow:
 1. Run: tdd-ai init
 2. Run: tdd-ai spec add "<requirement>" for each distinct requirement
 3. Run: tdd-ai spec pick <id> to pick ONE spec to work on
-4. Run: tdd-ai guide --format json
-5. Follow the instructions and rules from the guide output EXACTLY
-6. When the phase is complete, run: tdd-ai phase next
-7. Run: tdd-ai guide --format json again and repeat
-8. After REFACTOR, the tool auto-completes the current spec and loops back to RED for the next spec
-9. Continue until tdd-ai phase shows "done" (all specs complete)
-
-IMPORTANT: Always check tdd-ai guide before writing any code.
-Do NOT skip phases. Do NOT write implementation before tests exist and fail.
+4. Run: tdd-ai guide --format json to check current phase state
+5. Do the work appropriate for the current phase
+6. If unsure what's blocking you, run: tdd-ai blockers --format json
+7. When the phase is complete, run: tdd-ai phase next
+8. Run: tdd-ai guide --format json again and repeat
+9. After REFACTOR, the tool auto-completes the current spec and loops back to RED for the next spec
+10. Continue until tdd-ai phase shows "done" (all specs complete)
 ```
 
 This works with any AI agent that has terminal access: Cursor, Claude Code, Windsurf, Codex CLI, GitHub Copilot in the terminal, or any other tool.
@@ -259,19 +259,17 @@ When implementing any feature, use the tdd-ai CLI to follow strict TDD:
 1. Run `tdd-ai init` to start a session (skip if .tdd-ai.json already exists)
 2. Run `tdd-ai spec add "<requirement>"` for each requirement
 3. Run `tdd-ai spec pick <id>` to pick ONE spec to work on
-4. Run `tdd-ai guide --format json` to get phase instructions
-5. Follow the instructions and rules EXACTLY
-6. Run `tdd-ai phase next` when the current phase is complete
-7. Repeat steps 4-6 until the phase loops back to RED for the next spec or reaches "done"
+4. Run `tdd-ai guide --format json` to read the current phase state
+5. Do the work appropriate for the phase (red: write failing tests, green: write minimal impl, refactor: clean up)
+6. Run `tdd-ai blockers --format json` to check what's blocking advancement
+7. Run `tdd-ai phase next` when all blockers are resolved
+8. Repeat from step 4 until phase reaches "done"
 
 Key rules:
-- ALWAYS check `tdd-ai guide` before writing code
-- In red phase: pick a spec first, then write tests only, verify they fail, do NOT write implementation
+- In red phase: pick a spec first, then write tests only, verify they fail
 - In green phase: write minimal implementation, do NOT modify tests
-- In refactor phase: improve code quality, run tests after every change
-- In refactor phase: answer all 7 reflection questions with `tdd-ai refactor reflect`
+- In refactor phase: improve code quality, answer all 7 reflection questions with `tdd-ai refactor reflect`
 - After refactor: the current spec is auto-completed, loop continues with the next spec
-- NEVER skip a phase
 ```
 
 **GitHub Copilot / Codex** (`.github/copilot-instructions.md` or `AGENTS.md`):
@@ -285,20 +283,19 @@ Before implementing any feature, follow this workflow:
 1. Run `tdd-ai init` if no session exists
 2. Add specs with `tdd-ai spec add "<requirement>"`
 3. Pick a spec with `tdd-ai spec pick <id>`
-4. Check `tdd-ai guide --format json` for phase-specific instructions
-5. Follow the instructions exactly -- do not skip phases
-6. Advance with `tdd-ai phase next` when each phase is complete
-
-The CLI will tell you what to do and what NOT to do at each step.
-Always defer to its guidance over your own instincts.
+4. Check `tdd-ai guide --format json` for current phase state
+5. Do the work for the current phase — do not skip phases
+6. Check `tdd-ai blockers --format json` if unsure what's blocking you
+7. Advance with `tdd-ai phase next` when blockers are resolved
 ```
 
 **Windsurf** (`.windsurfrules`):
 
 ```
 When implementing features, use the tdd-ai CLI for TDD workflow.
-Run `tdd-ai guide --format json` before writing any code.
-Follow the phase instructions exactly. Advance with `tdd-ai phase next`.
+Run `tdd-ai guide --format json` to check current phase state.
+Run `tdd-ai blockers --format json` to see what's blocking advancement.
+Advance with `tdd-ai phase next` when blockers are resolved.
 Do not skip phases or write implementation before tests fail.
 ```
 
@@ -394,33 +391,34 @@ Developer: "Implement a rate limiter with sliding window"
   │                    |                        │
   │                    v                        │
   │          Phase: RED                         │
-  │          "Write a failing test for spec [1]"│
+  │          expected_test_result: "fail"       │
+  │          blockers: ["No test result..."]    │
   │                    |                        │
   │                    v                        │
   │  Agent writes test for spec [1]             │
   │  Agent runs: npm test → confirms tests fail │
-  │  Agent runs: tdd-ai phase next              │
+  │  Agent runs: tdd-ai phase next --test-result fail
   │  Agent runs: tdd-ai guide --format json     │
   │                    |                        │
   │                    v                        │
   │          Phase: GREEN                       │
-  │          "Write MINIMAL code for spec [1]"  │
+  │          expected_test_result: "pass"       │
   │                    |                        │
   │                    v                        │
-  │  Agent writes implementation                │
+  │  Agent writes minimal implementation        │
   │  Tests fail? → Agent fixes (NOT the tests)  │
-  │  Tests pass? → Agent runs: tdd-ai phase next│
+  │  Tests pass? → Agent runs: tdd-ai phase next --test-result pass
   │  Agent runs: tdd-ai guide --format json     │
   │                    |                        │
   │                    v                        │
   │          Phase: REFACTOR                    │
-  │          "Improve code quality"             │
+  │          expected_test_result: "pass"       │
   │                    |                        │
   │                    v                        │
   │  Agent refactors                            │
   │  Agent runs: npm test after each change     │
   │  Agent answers all 7 reflection questions   │
-  │  Agent runs: tdd-ai phase next              │
+  │  Agent runs: tdd-ai phase next --test-result pass
   │                    |                        │
   │                    v                        │
   │  Spec [1] auto-completed                    │
@@ -432,7 +430,7 @@ Developer: "Implement a rate limiter with sliding window"
               Done.
 ```
 
-### JSON Output Example
+### JSON Output Examples
 
 ```bash
 tdd-ai guide --format json
@@ -463,18 +461,24 @@ tdd-ai guide --format json
   },
   "iteration": 1,
   "total_specs": 2,
-  "instructions": [
-    "Write a failing test for spec [1]: Rate limiter with sliding window algorithm",
-    "Cover happy path, edge cases, and error conditions for this spec.",
-    "Run the project's test command to verify the new test FAILS.",
-    "Do NOT write any implementation code yet.",
-    "When the test is written and confirmed failing, run: tdd-ai test && tdd-ai phase next (test result is stored and auto-used)"
-  ],
-  "rules": [
-    "DO NOT create implementation files.",
-    "DO NOT write skeleton or stub implementations.",
-    "Tests must assert specific expected values, not just 'does not throw'."
+  "expected_test_result": "fail",
+  "blockers": [
+    "No test result recorded"
   ]
+}
+```
+
+The `expected_test_result` field tells the agent what outcome tests should produce in the current phase. The `blockers` list tells the agent what must be resolved before `phase next` will succeed. Use `tdd-ai blockers --format json` to check blockers at any time:
+
+```bash
+tdd-ai blockers --format json
+```
+
+```json
+{
+  "phase": "red",
+  "blockers": ["No spec selected", "No test result recorded"],
+  "can_advance": false
 }
 ```
 
@@ -496,7 +500,9 @@ make lint
 ## Design Principles
 
 - **The CLI does not run tests.** The AI agent already knows how to do that. This tool provides structure, not execution.
+- **State over instructions.** The CLI surfaces state (current phase, expected test result, blockers) and lets the agent decide what to do. Constraints are enforced by the state machine, not by telling the agent what to do.
+- **Blockers over hints.** Instead of telling the agent "pick a spec first," `phase next` fails and `blockers` explains why. Enforcement beats aspiration.
 - **Framework-agnostic.** Works with any language, any test runner, any AI agent.
 - **Agent-agnostic.** Works with Cursor, Claude Code, Codex, GitHub Copilot, Windsurf, or any tool with terminal access.
-- **Structured output.** `--format json` lets AI agents parse guidance programmatically.
+- **Structured output.** `--format json` lets AI agents parse state programmatically.
 - **Discipline over intelligence.** LLMs are smart but undisciplined. This tool enforces the red-green-refactor cycle.
