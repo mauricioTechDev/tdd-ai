@@ -13,6 +13,7 @@ import (
 
 var completeTestResultFlag string
 var completeSummaryFlag bool
+var completeForceFlag bool
 
 var completeCmd = &cobra.Command{
 	Use:   "complete",
@@ -35,6 +36,10 @@ This is the "I'm done, wrap it up" command.`,
 
 		if s.Phase == types.PhaseDone && len(s.ActiveSpecs()) == 0 {
 			return fmt.Errorf("nothing to complete: already in done phase with no active specs")
+		}
+
+		if s.AgentMode && !completeForceFlag {
+			return fmt.Errorf("complete bypasses TDD guardrails in agent mode; use --force to override")
 		}
 
 		// Determine test result: explicit flag > cached session result > run test command
@@ -119,5 +124,6 @@ This is the "I'm done, wrap it up" command.`,
 func init() {
 	completeCmd.Flags().StringVar(&completeTestResultFlag, "test-result", "", "test outcome: 'pass' (required if no test command configured)")
 	completeCmd.Flags().BoolVar(&completeSummaryFlag, "summary", false, "show only the last 20 lines of test output (saves LLM context window)")
+	completeCmd.Flags().BoolVar(&completeForceFlag, "force", false, "override agent mode guardrails for complete")
 	rootCmd.AddCommand(completeCmd)
 }

@@ -140,13 +140,16 @@ Use --test-result to validate that tests are in the expected state before advanc
 	},
 }
 
+var phaseSetForceFlag bool
+
 var phaseSetCmd = &cobra.Command{
 	Use:   "set <red|green|refactor|done>",
-	Short: "Manually set the TDD phase",
-	Long:  "Override the current phase. Use with caution — this bypasses the normal TDD progression.",
-	Example: `  tdd-ai phase set red
-  tdd-ai phase set green
-  tdd-ai phase set refactor`,
+	Short: "Manually set the TDD phase (requires --force)",
+	Long: `Override the current phase. Requires --force because this bypasses TDD guardrails.
+Prefer 'tdd-ai phase next' for normal phase advancement.`,
+	Example: `  tdd-ai phase set red --force
+  tdd-ai phase set green --force
+  tdd-ai phase set refactor --force`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		dir := getWorkDir()
@@ -160,6 +163,14 @@ var phaseSetCmd = &cobra.Command{
 			return fmt.Errorf("invalid phase %q. Valid phases: red, green, refactor, done", args[0])
 		}
 
+		if s.AgentMode {
+			return fmt.Errorf("phase set is disabled in agent mode. Use 'tdd-ai phase next' for phase advancement")
+		}
+
+		if !phaseSetForceFlag {
+			return fmt.Errorf("phase set bypasses TDD guardrails; use --force to override, or prefer 'tdd-ai phase next'")
+		}
+
 		old := s.Phase
 		s.Phase = p
 		if p == types.PhaseRefactor && len(s.Reflections) == 0 {
@@ -171,6 +182,7 @@ var phaseSetCmd = &cobra.Command{
 		s.AddEvent("phase_set", func(e *types.Event) {
 			e.From = string(old)
 			e.To = string(p)
+			e.Result = "forced_override"
 		})
 		if err := session.Save(dir, s); err != nil {
 			return err
@@ -183,6 +195,7 @@ var phaseSetCmd = &cobra.Command{
 
 func init() {
 	phaseNextCmd.Flags().StringVar(&testResultFlag, "test-result", "", "test outcome: 'pass' or 'fail'")
+	phaseSetCmd.Flags().BoolVar(&phaseSetForceFlag, "force", false, "override TDD guardrails and force phase change")
 	phaseCmd.AddCommand(phaseNextCmd)
 	phaseCmd.AddCommand(phaseSetCmd)
 	rootCmd.AddCommand(phaseCmd)

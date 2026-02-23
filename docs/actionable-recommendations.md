@@ -112,73 +112,6 @@ Compliance: 100% (3/3 specs followed RED-GREEN-REFACTOR)
 
 ---
 
-### 5. Ship a `tdd-ai generate claude-md` command
-
-**Priority:** Medium
-**Effort:** Low
-
-Generate a CLAUDE.md template with all enforcement instructions pre-written:
-
-```bash
-$ tdd-ai generate claude-md > CLAUDE.md
-```
-
-Output includes:
-- Mandatory tdd-ai initialization block
-- Anti-batching instructions
-- One-spec-at-a-time constraint
-- Verification instructions
-- Explicit prohibitions (no `phase set`, no impl during RED)
-
-**Template content:**
-
-```markdown
-## MANDATORY: TDD Workflow (Non-Negotiable)
-
-Before writing ANY code (implementation OR test), you MUST:
-
-1. Run `tdd-ai init --test-cmd "<test-command>"`
-2. Run `tdd-ai spec add` for each module
-3. For EACH spec, follow this EXACT sequence:
-   a. `tdd-ai spec pick <id>`
-   b. Write the TEST file ONLY — no implementation
-   c. Run tests — verify the test FAILS (RED)
-   d. `tdd-ai test --result fail`
-   e. `tdd-ai phase next`
-   f. Write MINIMUM implementation to pass
-   g. Run tests — verify it PASSES (GREEN)
-   h. `tdd-ai test --result pass`
-   i. `tdd-ai phase next`
-   j. Refactor, answer all reflections
-   k. `tdd-ai phase next`
-
-NEVER write implementation and test files in the same step.
-NEVER batch multiple modules together.
-NEVER use `tdd-ai phase set` — only use `tdd-ai phase next`.
-
-## ONE SPEC AT A TIME
-
-Complete the full RED-GREEN-REFACTOR cycle for ONE spec before
-starting the next. Do NOT:
-- Write multiple test files before running any
-- Write implementation alongside tests
-- Optimize for speed over discipline
-
-## Verification
-
-After completing all specs, run `tdd-ai status --format json`.
-The output MUST show:
-- Every spec status = "done"
-- Event history contains phase_next transitions (NOT phase_set)
-- Iteration count matches number of completed specs
-```
-
-**Files to add:**
-- `cmd/generate.go` — new command with `claude-md` subcommand
-- `internal/templates/claude-md.go` — template content
-
----
-
 ## Hook / CI Integration
 
 ### 6. Ship a Claude Code hook template for file-write gating
@@ -277,54 +210,6 @@ jobs:
 
 ---
 
-## Prompt Engineering
-
-### 9. Anti-batching instructions for CLAUDE.md
-
-**Priority:** High
-**Effort:** None (copy-paste into project CLAUDE.md)
-
-```markdown
-## Anti-Batching Rules
-
-- Each tool call that writes a file MUST be followed by a test run
-  before writing the next file
-- Before writing ANY file, run `tdd-ai guide` and follow its output
-- After writing a test file:
-  1. Run the tests
-  2. Confirm at least one NEW test FAILS
-  3. Record: `tdd-ai test --result fail`
-  4. Only THEN write implementation
-- NEVER write more than one source file between test runs
-```
-
----
-
-### 10. Negative examples in CLAUDE.md
-
-**Priority:** Medium
-**Effort:** None (copy-paste into project CLAUDE.md)
-
-```markdown
-## What NOT To Do
-
-BAD (batching):
-  Write constants.js -> Write constants.test.js -> Write grid.js -> Write grid.test.js -> npm test
-
-BAD (impl before test):
-  Write grid.js -> Write grid.test.js -> npm test
-
-BAD (parallel modules):
-  "I'll tackle Stages C, D, E, F, G, H in rapid succession"
-
-GOOD (one spec, test first):
-  Write grid.test.js -> npm test (FAIL) -> tdd-ai test --result fail ->
-  tdd-ai phase next -> Write grid.js -> npm test (PASS) ->
-  tdd-ai test --result pass -> tdd-ai phase next -> refactor -> tdd-ai phase next
-```
-
----
-
 ## Implementation Sequence
 
 Recommended order for implementing these changes:
@@ -332,12 +217,9 @@ Recommended order for implementing these changes:
 | Order | Item | Reason |
 |-------|------|--------|
 | 1 | #2 Restrict `phase set` | Low effort, closes critical bypass |
-| 2 | #9 Anti-batching instructions | Zero effort, immediate impact on new projects |
-| 3 | #10 Negative examples | Zero effort, immediate impact |
-| 4 | #1 `tdd-ai verify` | High leverage, enables CI integration |
-| 5 | #6 Claude Code hook template | Strongest enforcement for AI agents |
-| 6 | #5 `generate claude-md` | Reduces friction for new projects |
-| 7 | #3 Agent mode | Medium effort, comprehensive solution |
-| 8 | #4 Compliance score in status | Nice-to-have, builds on verify logic |
-| 9 | #7 Pre-commit hook | Simple gate for commits |
-| 10 | #8 CI workflow | Final layer of enforcement |
+| 2 | #1 `tdd-ai verify` | High leverage, enables CI integration |
+| 3 | #6 Claude Code hook template | Strongest enforcement for AI agents |
+| 4 | #3 Agent mode | Medium effort, comprehensive solution |
+| 5 | #4 Compliance score in status | Nice-to-have, builds on verify logic |
+| 6 | #7 Pre-commit hook | Simple gate for commits |
+| 7 | #8 CI workflow | Final layer of enforcement |

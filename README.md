@@ -113,6 +113,7 @@ tdd-ai phase next --test-result pass
 | `tdd-ai init` | Start a new TDD session (greenfield mode) |
 | `tdd-ai init --retrofit` | Start a session for testing existing code |
 | `tdd-ai init --test-cmd "cmd"` | Start a session with a configured test command |
+| `tdd-ai init --agent` | Start a session with stricter agent mode enforcement |
 | `tdd-ai spec add "desc" [...]` | Add one or more specs |
 | `tdd-ai spec list` | List all specs with status |
 | `tdd-ai spec pick <id>` | Pick a spec to work on in the current iteration |
@@ -121,7 +122,7 @@ tdd-ai phase next --test-result pass
 | `tdd-ai phase` | Show current phase |
 | `tdd-ai phase next` | Advance to next phase |
 | `tdd-ai phase next --test-result pass\|fail` | Advance with test result validation |
-| `tdd-ai phase set <phase>` | Manually set phase (red/green/refactor/done) |
+| `tdd-ai phase set <phase> --force` | Manually set phase (requires --force; disabled in agent mode) |
 | `tdd-ai blockers` | Show what's preventing phase advancement |
 | `tdd-ai guide` | Get current phase state and context |
 | `tdd-ai test` | Run configured test command and record result |
@@ -129,7 +130,9 @@ tdd-ai phase next --test-result pass
 | `tdd-ai refactor reflect <n> --answer "..."` | Answer a reflection question |
 | `tdd-ai refactor status` | Show all reflection questions with status |
 | `tdd-ai complete` | Finish TDD cycle (advance to done + mark specs complete) |
-| `tdd-ai status` | Full session overview (phase, mode, specs, next action) |
+| `tdd-ai complete --force` | Finish TDD cycle in agent mode (requires --force) |
+| `tdd-ai verify` | Check TDD compliance of the current session (exit 1 on violations) |
+| `tdd-ai status` | Full session overview (phase, mode, specs, compliance score) |
 | `tdd-ai reset` | Clear session and start over |
 | `tdd-ai version` | Print version |
 
@@ -165,6 +168,27 @@ tdd-ai spec add "GET /users returns 200" "POST /users validates input"
 tdd-ai guide --format json   # Instructions say: verify existing behavior
 ```
 
+### Agent Mode
+
+Use `--agent` to enable stricter enforcement for AI agents. In agent mode:
+
+- `phase set` is **disabled entirely** (even with `--force`)
+- `complete` requires `--force` to prevent the agent from bypassing the TDD cycle
+- The agent must follow the full RED-GREEN-REFACTOR loop using `phase next`
+
+```bash
+tdd-ai init --agent --test-cmd "go test ./..."
+
+# phase set is blocked:
+tdd-ai phase set green --force   # Error: phase set is disabled in agent mode
+
+# complete requires --force:
+tdd-ai complete                  # Error: requires --force in agent mode
+tdd-ai complete --force          # Works
+```
+
+Agent mode is stored in the session file (`AgentMode: true`) and is backward compatible — existing sessions without the field default to non-agent mode.
+
 ### Test Command Integration
 
 Configure a test command during init to enable automatic test running:
@@ -196,6 +220,28 @@ tdd-ai complete --test-result pass
 ```
 
 This replaces the ceremony of running `phase next` multiple times plus `spec done --all`.
+
+### TDD Compliance Verification
+
+Use `tdd-ai verify` to analyze the session history for TDD compliance violations after completing specs:
+
+```bash
+tdd-ai verify
+# TDD Compliance: 100%
+# Specs verified: 3, compliant: 3
+# No violations found.
+
+tdd-ai verify --format json
+```
+
+The verify command checks:
+- Every completed spec has a `spec_picked` event
+- A failing test was recorded during the RED phase (greenfield mode)
+- No `phase_set` usage (bypassing TDD guardrails)
+
+Returns exit code 0 when compliant, 1 when violations are found — useful in CI pipelines.
+
+The compliance score also appears automatically in `tdd-ai status` output once specs have been completed.
 
 ### Test Result Validation
 
@@ -304,6 +350,43 @@ Do not skip phases or write implementation before tests fail.
 ### Hooks (Automated Enforcement)
 
 Some AI tools support hooks -- scripts that run automatically before or after the agent acts. You can use hooks to enforce the TDD workflow without relying on the AI to remember.
+
+**Claude Code hooks** (`.claude/settings.json`):
+
+tdd-ai ships with two Claude Code `PreToolUse` hooks that enforce TDD discipline automatically:
+
+1. **File-write gating** (`.claude/hooks/tdd-guard.sh`) — During the RED phase, blocks writes to non-test files. Only files matching test patterns (`*_test.*`, `*.test.*`, `*.spec.*`, `*/test/*`, `*/tests/*`) are allowed. This prevents the agent from writing implementation code before tests fail.
+
+2. **Commit gating** (`.claude/hooks/tdd-commit-check.sh`) — Blocks `git commit` when the TDD phase is not `done`. Ensures all specs are completed through the full RED-GREEN-REFACTOR cycle before code is committed.
+
+To enable these hooks, add to your `.claude/settings.json`:
+
+```json
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/tdd-guard.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/tdd-commit-check.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
 
 **Cursor hooks** (`.cursor/hooks.json`):
 

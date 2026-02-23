@@ -11,6 +11,7 @@ import (
 var (
 	retrofitFlag bool
 	testCmdFlag  string
+	agentFlag    bool
 )
 
 var initCmd = &cobra.Command{
@@ -48,6 +49,10 @@ command and auto-populates the test result for 'phase next'.`,
 			s.TestCmd = testCmdFlag
 		}
 
+		if agentFlag {
+			s.AgentMode = true
+		}
+
 		s.AddEvent("init", func(e *types.Event) {
 			e.Result = string(s.GetMode())
 		})
@@ -56,7 +61,11 @@ command and auto-populates the test result for 'phase next'.`,
 			return err
 		}
 
-		fmt.Fprintf(cmd.OutOrStdout(), "Session initialized (phase: %s, mode: %s)\n", s.Phase, s.GetMode())
+		modeStr := string(s.GetMode())
+		if s.AgentMode {
+			modeStr += ", agent"
+		}
+		fmt.Fprintf(cmd.OutOrStdout(), "Session initialized (phase: %s, mode: %s)\n", s.Phase, modeStr)
 		if s.TestCmd != "" {
 			fmt.Fprintf(cmd.OutOrStdout(), "Test command: %s\n", s.TestCmd)
 		}
@@ -67,5 +76,6 @@ command and auto-populates the test result for 'phase next'.`,
 func init() {
 	initCmd.Flags().BoolVar(&retrofitFlag, "retrofit", false, "use retrofit mode for testing existing code")
 	initCmd.Flags().StringVar(&testCmdFlag, "test-cmd", "", "test command to run (e.g. 'go test ./...', 'npm test')")
+	initCmd.Flags().BoolVar(&agentFlag, "agent", false, "enable agent mode (stricter enforcement: disables phase set, requires --force for complete)")
 	rootCmd.AddCommand(initCmd)
 }

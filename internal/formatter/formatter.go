@@ -8,6 +8,7 @@ import (
 
 	"github.com/macosta/tdd-ai/internal/phase"
 	"github.com/macosta/tdd-ai/internal/types"
+	"github.com/macosta/tdd-ai/internal/verify"
 )
 
 // sortSpecsByID returns a copy of specs sorted by ID ascending.
@@ -113,32 +114,42 @@ func formatText(g types.Guidance) string {
 // FormatFullStatus renders a rich session overview.
 func FormatFullStatus(s *types.Session, f Format) (string, error) {
 	type fullStatusOutput struct {
-		Phase         types.Phase   `json:"phase"`
-		Mode          string        `json:"mode"`
-		TestCmd       string        `json:"test_cmd,omitempty"`
-		CurrentSpecID *int          `json:"current_spec_id,omitempty"`
-		Iteration     int           `json:"iteration,omitempty"`
-		TotalSpecs    int           `json:"total_specs"`
-		ActiveSpecs   int           `json:"active_specs"`
-		DoneSpecs     int           `json:"done_specs"`
-		Specs         []types.Spec  `json:"specs"`
-		History       []types.Event `json:"history,omitempty"`
+		Phase           types.Phase   `json:"phase"`
+		Mode            string        `json:"mode"`
+		TestCmd         string        `json:"test_cmd,omitempty"`
+		CurrentSpecID   *int          `json:"current_spec_id,omitempty"`
+		Iteration       int           `json:"iteration,omitempty"`
+		TotalSpecs      int           `json:"total_specs"`
+		ActiveSpecs     int           `json:"active_specs"`
+		DoneSpecs       int           `json:"done_specs"`
+		ComplianceScore *float64      `json:"compliance_score,omitempty"`
+		Specs           []types.Spec  `json:"specs"`
+		History         []types.Event `json:"history,omitempty"`
 	}
 
 	active := s.ActiveSpecs()
 	mode := s.GetMode()
+	doneSpecs := len(s.Specs) - len(active)
+
+	// Compute compliance score if there are completed specs
+	var complianceScore *float64
+	if doneSpecs > 0 {
+		result := verify.Analyze(s)
+		complianceScore = &result.Score
+	}
 
 	out := fullStatusOutput{
-		Phase:         s.Phase,
-		Mode:          string(mode),
-		TestCmd:       s.TestCmd,
-		CurrentSpecID: s.CurrentSpecID,
-		Iteration:     s.Iteration,
-		TotalSpecs:    len(s.Specs),
-		ActiveSpecs:   len(active),
-		DoneSpecs:     len(s.Specs) - len(active),
-		Specs:         s.Specs,
-		History:       s.History,
+		Phase:           s.Phase,
+		Mode:            string(mode),
+		TestCmd:         s.TestCmd,
+		CurrentSpecID:   s.CurrentSpecID,
+		Iteration:       s.Iteration,
+		TotalSpecs:      len(s.Specs),
+		ActiveSpecs:     len(active),
+		DoneSpecs:       doneSpecs,
+		ComplianceScore: complianceScore,
+		Specs:           s.Specs,
+		History:         s.History,
 	}
 
 	switch f {
@@ -161,7 +172,11 @@ func FormatFullStatus(s *types.Session, f Format) (string, error) {
 		if s.Iteration > 0 {
 			fmt.Fprintf(&b, "Iteration: %d\n", s.Iteration)
 		}
-		fmt.Fprintf(&b, "Specs: %d total, %d active, %d done\n\n", out.TotalSpecs, out.ActiveSpecs, out.DoneSpecs)
+		fmt.Fprintf(&b, "Specs: %d total, %d active, %d done\n", out.TotalSpecs, out.ActiveSpecs, out.DoneSpecs)
+		if complianceScore != nil {
+			fmt.Fprintf(&b, "Compliance: %.0f%%\n", *complianceScore)
+		}
+		b.WriteString("\n")
 		for _, spec := range sortSpecsByID(s.Specs) {
 			status := "active"
 			if spec.Status == types.SpecStatusCompleted {
