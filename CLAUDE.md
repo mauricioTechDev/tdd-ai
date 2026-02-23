@@ -53,6 +53,7 @@ These hooks are registered in `.claude/settings.local.json` and run automaticall
 - `internal/phase/` — State machine: `Next()`, `NextWithMode()`, `NextInLoop()`, `ExpectedTestResult()`, `CanTransition()`
 - `internal/guide/` — Generates phase-specific instructions and rules based on current phase and mode
 - `internal/reflection/` — Default reflection questions and answer validation for the refactor phase
+- `internal/verify/` — Post-hoc TDD compliance analysis: checks spec_picked events, RED failures, phase_set usage; returns compliance score (0-100%)
 - `internal/formatter/` — Formats output as text or JSON (`FormatGuidance`, `FormatStatus`, `FormatFullStatus`)
 
 ### Key Concepts
@@ -78,7 +79,17 @@ The CLI follows Kent Beck's canonical TDD tight loop. Instead of batch-processin
 
 **Refactor Reflections:** During the refactor phase, 7 structured reflection questions are loaded (including a test-discovery question). Agents must answer all questions (min 5 words each) before advancing. Use `tdd-ai refactor reflect <n> --answer "..."` to answer and `tdd-ai refactor status` to view progress.
 
-**Session File:** `.tdd-ai.json` in the working directory stores phase, mode, specs, test command, last test result, current spec ID, iteration count, reflections, and event history.
+**Agent Mode:** `tdd-ai init --agent` enables stricter enforcement: `phase set` is disabled entirely (even with `--force`), `complete` requires `--force`. Stored as `AgentMode bool` in the Session struct (backward compatible via `omitempty`).
+
+**Compliance Verification:** `tdd-ai verify` analyzes session history for TDD violations (missing spec_picked, no RED failures, phase_set usage). Returns a compliance score (0-100%) and exit code 1 on violations. The score also appears in `tdd-ai status` output when completed specs exist.
+
+**Phase Set --force:** `phase set` now requires `--force` to discourage bypassing TDD guardrails. Logs a `forced_override` event for audit trail.
+
+**Claude Code Hooks:** Two `PreToolUse` hooks in `.claude/hooks/`:
+- `tdd-guard.sh` — Blocks non-test file writes during RED phase
+- `tdd-commit-check.sh` — Blocks `git commit` when phase is not `done`
+
+**Session File:** `.tdd-ai.json` in the working directory stores phase, mode, agent mode, specs, test command, last test result, current spec ID, iteration count, reflections, and event history.
 
 **Output Format:** All commands support `--format json` for machine-readable output. Format auto-detects: JSON when piped, text when in a terminal.
 
