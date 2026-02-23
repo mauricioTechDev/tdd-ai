@@ -157,6 +157,51 @@ func TestCompleteClearsCurrentSpecID(t *testing.T) {
 	}
 }
 
+func TestCompleteBlockedInAgentModeWithoutForce(t *testing.T) {
+	dir := t.TempDir()
+	s := types.NewSession()
+	s.Phase = types.PhaseGreen
+	s.AgentMode = true
+	s.AddSpec("feature")
+	if err := session.Save(dir, s); err != nil {
+		t.Fatalf("failed to save session: %v", err)
+	}
+
+	origDir, _ := os.Getwd()
+	os.Chdir(dir)
+	defer os.Chdir(origDir)
+
+	// Reset flag state
+	completeForceFlag = false
+	_, err := executeCompleteCmd(t, "complete", "--test-result", "pass", "--format", "text")
+	if err == nil {
+		t.Fatal("complete should be blocked in agent mode without --force")
+	}
+	if !strings.Contains(err.Error(), "agent mode") {
+		t.Errorf("error should mention agent mode, got: %v", err)
+	}
+}
+
+func TestCompleteWorksInAgentModeWithForce(t *testing.T) {
+	dir := t.TempDir()
+	s := types.NewSession()
+	s.Phase = types.PhaseGreen
+	s.AgentMode = true
+	s.AddSpec("feature")
+	if err := session.Save(dir, s); err != nil {
+		t.Fatalf("failed to save session: %v", err)
+	}
+
+	origDir, _ := os.Getwd()
+	os.Chdir(dir)
+	defer os.Chdir(origDir)
+
+	_, err := executeCompleteCmd(t, "complete", "--test-result", "pass", "--force", "--format", "text")
+	if err != nil {
+		t.Fatalf("complete with --force should work in agent mode: %v", err)
+	}
+}
+
 func TestCompleteFromRedPhaseNotBlockedByReflections(t *testing.T) {
 	dir := t.TempDir()
 	s := types.NewSession()

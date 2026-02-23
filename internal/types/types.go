@@ -69,6 +69,7 @@ type ReflectionQuestion struct {
 type Session struct {
 	Phase          Phase                `json:"phase"`
 	Mode           Mode                 `json:"mode,omitempty"`
+	AgentMode      bool                 `json:"agent_mode,omitempty"`
 	TestCmd        string               `json:"test_cmd,omitempty"`
 	LastTestResult string               `json:"last_test_result,omitempty"`
 	Specs          []Spec               `json:"specs"`

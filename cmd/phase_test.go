@@ -271,7 +271,7 @@ func TestPhaseSetToRefactorLoadsReflections(t *testing.T) {
 	os.Chdir(dir)
 	defer os.Chdir(origDir)
 
-	_, _, err := executePhaseCmd(t, "phase", "set", "refactor", "--format", "text")
+	_, _, err := executePhaseCmd(t, "phase", "set", "refactor", "--force", "--format", "text")
 	if err != nil {
 		t.Fatalf("phase set refactor failed: %v", err)
 	}
@@ -282,6 +282,92 @@ func TestPhaseSetToRefactorLoadsReflections(t *testing.T) {
 	}
 	if len(loaded.Reflections) != 7 {
 		t.Errorf("should load 7 reflections when setting to refactor, got %d", len(loaded.Reflections))
+	}
+}
+
+func TestPhaseSetWithoutForceReturnsError(t *testing.T) {
+	dir := t.TempDir()
+	s := types.NewSession()
+	s.Phase = types.PhaseRed
+	if err := session.Save(dir, s); err != nil {
+		t.Fatalf("failed to save session: %v", err)
+	}
+
+	origDir, _ := os.Getwd()
+	os.Chdir(dir)
+	defer os.Chdir(origDir)
+
+	// Reset flag state from previous test runs
+	phaseSetForceFlag = false
+	_, _, err := executePhaseCmd(t, "phase", "set", "green", "--format", "text")
+	if err == nil {
+		t.Fatal("phase set without --force should return error")
+	}
+	if !strings.Contains(err.Error(), "phase set bypasses TDD guardrails") {
+		t.Errorf("error should mention TDD guardrails, got: %v", err)
+	}
+}
+
+func TestPhaseSetWithForceSucceedsAndLogsForcedOverride(t *testing.T) {
+	dir := t.TempDir()
+	s := types.NewSession()
+	s.Phase = types.PhaseRed
+	if err := session.Save(dir, s); err != nil {
+		t.Fatalf("failed to save session: %v", err)
+	}
+
+	origDir, _ := os.Getwd()
+	os.Chdir(dir)
+	defer os.Chdir(origDir)
+
+	out, _, err := executePhaseCmd(t, "phase", "set", "green", "--force", "--format", "text")
+	if err != nil {
+		t.Fatalf("phase set --force should succeed: %v", err)
+	}
+	if !strings.Contains(out, "Phase set to: green") {
+		t.Errorf("should confirm phase change, got:\n%s", out)
+	}
+
+	loaded, err := session.Load(dir)
+	if err != nil {
+		t.Fatalf("failed to load session: %v", err)
+	}
+	if loaded.Phase != types.PhaseGreen {
+		t.Errorf("phase should be green, got %s", loaded.Phase)
+	}
+	// Check event has forced_override result
+	found := false
+	for _, ev := range loaded.History {
+		if ev.Action == "phase_set" && ev.Result == "forced_override" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("should log phase_set event with Result=forced_override")
+	}
+}
+
+func TestPhaseSetDisabledInAgentMode(t *testing.T) {
+	dir := t.TempDir()
+	s := types.NewSession()
+	s.Phase = types.PhaseRed
+	s.AgentMode = true
+	if err := session.Save(dir, s); err != nil {
+		t.Fatalf("failed to save session: %v", err)
+	}
+
+	origDir, _ := os.Getwd()
+	os.Chdir(dir)
+	defer os.Chdir(origDir)
+
+	// Even with --force, phase set should be blocked in agent mode
+	_, _, err := executePhaseCmd(t, "phase", "set", "green", "--force", "--format", "text")
+	if err == nil {
+		t.Fatal("phase set should be disabled in agent mode")
+	}
+	if !strings.Contains(err.Error(), "agent mode") {
+		t.Errorf("error should mention agent mode, got: %v", err)
 	}
 }
 
@@ -299,7 +385,7 @@ func TestPhaseSetToRefactorDoesNotOverwriteExisting(t *testing.T) {
 	os.Chdir(dir)
 	defer os.Chdir(origDir)
 
-	_, _, err := executePhaseCmd(t, "phase", "set", "refactor", "--format", "text")
+	_, _, err := executePhaseCmd(t, "phase", "set", "refactor", "--force", "--format", "text")
 	if err != nil {
 		t.Fatalf("phase set refactor failed: %v", err)
 	}
