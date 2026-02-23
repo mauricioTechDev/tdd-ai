@@ -192,12 +192,47 @@ tdd-ai init --retrofit
 # red (tests pass, verifying existing behavior) -> refactor -> [red (loop) | done]
 ```
 
+## Agent Mode
+
+Use `--agent` for stricter enforcement when AI agents are driving the workflow:
+
+```bash
+tdd-ai init --agent --test-cmd "npm test"
+```
+
+- `phase set` is **disabled entirely** — the agent must use `phase next`
+- `complete` requires `--force` to prevent bypassing the TDD cycle
+- Backward compatible — existing sessions default to non-agent mode
+
+## TDD Compliance Verification
+
+After completing specs, verify the session followed proper TDD discipline:
+
+```bash
+tdd-ai verify
+# TDD Compliance: 100%
+# Specs verified: 3, compliant: 3
+# No violations found.
+```
+
+Checks for: spec_picked events, failing tests during RED phase, and no `phase_set` usage. Returns exit code 1 on violations — useful in CI. The compliance score also appears in `tdd-ai status` output.
+
+## Claude Code Hooks
+
+tdd-ai ships with two Claude Code `PreToolUse` hooks in `.claude/hooks/`:
+
+- **`tdd-guard.sh`** — Blocks non-test file writes during the RED phase
+- **`tdd-commit-check.sh`** — Blocks `git commit` when the TDD phase is not `done`
+
+See the [full documentation](https://github.com/mauricioTechDev/tdd-ai#hooks-automated-enforcement) for setup instructions.
+
 ## Commands
 
 | Command | Description |
 |---------|-------------|
 | `tdd-ai init` | Start a new TDD session |
 | `tdd-ai init --retrofit` | Start a session for testing existing code |
+| `tdd-ai init --agent` | Start a session with stricter agent mode enforcement |
 | `tdd-ai spec add "desc" [...]` | Add one or more specs |
 | `tdd-ai spec list` | List all specs with status |
 | `tdd-ai spec pick <id>` | Pick a spec to work on in the current iteration |
@@ -205,12 +240,14 @@ tdd-ai init --retrofit
 | `tdd-ai blockers` | Show what's preventing phase advancement |
 | `tdd-ai guide` | Get current phase state and context |
 | `tdd-ai phase next` | Advance to next phase |
+| `tdd-ai phase set <phase> --force` | Manually set phase (requires --force; disabled in agent mode) |
 | `tdd-ai test` | Run configured test command |
 | `tdd-ai refactor` | Show refactor reflection status |
 | `tdd-ai refactor reflect <n> --answer "..."` | Answer a reflection question |
 | `tdd-ai refactor status` | Show all reflection questions with status |
-| `tdd-ai complete` | Finish TDD cycle |
-| `tdd-ai status` | Full session overview |
+| `tdd-ai complete` | Finish TDD cycle (requires --force in agent mode) |
+| `tdd-ai verify` | Check TDD compliance (exit 1 on violations) |
+| `tdd-ai status` | Full session overview (includes compliance score) |
 
 All commands support `--format json` for machine-readable output.
 
