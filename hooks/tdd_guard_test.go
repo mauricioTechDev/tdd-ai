@@ -12,10 +12,13 @@ import (
 	"github.com/macosta/tdd-ai/internal/types"
 )
 
-func hookPath() string {
-	// Find the hook script relative to the test file
+func repoRoot() string {
 	dir, _ := os.Getwd()
-	return filepath.Join(dir, "tdd-guard.sh")
+	return filepath.Dir(dir)
+}
+
+func hookPath() string {
+	return filepath.Join(repoRoot(), ".claude", "hooks", "tdd-guard.sh")
 }
 
 type hookInput struct {

@@ -11,7 +11,7 @@
           },
           {
             "type": "command",
-            "command": "hooks/tdd-commit-check.sh",
+            "command": ".claude/hooks/tdd-commit-check.sh",
             "timeout": 30
           }
         ]
@@ -21,7 +21,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "hooks/tdd-guard.sh",
+            "command": ".claude/hooks/tdd-guard.sh",
             "timeout": 30
           }
         ]

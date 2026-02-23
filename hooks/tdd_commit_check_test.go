@@ -1,7 +1,6 @@
 package hooks
 
 import (
-	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -12,8 +11,7 @@ import (
 )
 
 func commitCheckHookPath() string {
-	dir, _ := os.Getwd()
-	return filepath.Join(dir, "tdd-commit-check.sh")
+	return filepath.Join(repoRoot(), ".claude", "hooks", "tdd-commit-check.sh")
 }
 
 func runCommitCheckHook(t *testing.T, dir string, bashCmd string) (int, string) {
