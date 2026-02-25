@@ -349,17 +349,137 @@ Do not skip phases or write implementation before tests fail.
 
 ### Hooks (Automated Enforcement)
 
-Some AI tools support hooks -- scripts that run automatically before or after the agent acts. You can use hooks to enforce the TDD workflow without relying on the AI to remember.
+Some AI tools support hooks — scripts that run automatically before or after the agent acts. You can use hooks to enforce the TDD workflow without relying on the AI to remember. The scripts below read JSON from stdin and check the `.tdd-ai.json` session file, so they work with any agent that supports a hook system — not just Claude Code.
 
-**Claude Code hooks** (`.claude/settings.json`):
+tdd-ai provides two example hook scripts that enforce TDD discipline automatically:
 
-tdd-ai ships with two Claude Code `PreToolUse` hooks that enforce TDD discipline automatically:
+1. **File-write gating** (`tdd-guard.sh`) — During the RED phase, blocks writes to non-test files. Only files matching test patterns (`*_test.*`, `*.test.*`, `*.spec.*`, `*/test/*`, `*/tests/*`) are allowed. This prevents the agent from writing implementation code before tests fail.
 
-1. **File-write gating** (`.claude/hooks/tdd-guard.sh`) — During the RED phase, blocks writes to non-test files. Only files matching test patterns (`*_test.*`, `*.test.*`, `*.spec.*`, `*/test/*`, `*/tests/*`) are allowed. This prevents the agent from writing implementation code before tests fail.
+2. **Commit gating** (`tdd-commit-check.sh`) — Blocks `git commit` when the TDD phase is not `done`. Ensures all specs are completed through the full RED-GREEN-REFACTOR cycle before code is committed.
 
-2. **Commit gating** (`.claude/hooks/tdd-commit-check.sh`) — Blocks `git commit` when the TDD phase is not `done`. Ensures all specs are completed through the full RED-GREEN-REFACTOR cycle before code is committed.
+#### Claude Code Setup
 
-To enable these hooks, add to your `.claude/settings.json`:
+**Step 1.** Create the hooks directory:
+
+```bash
+mkdir -p .claude/hooks
+```
+
+**Step 2.** Create `.claude/hooks/tdd-guard.sh` with the following contents:
+
+```bash
+#!/usr/bin/env bash
+# tdd-guard.sh — Claude Code PreToolUse hook for file-write gating.
+#
+# During the RED phase, only test files may be written.
+# Non-test file writes are blocked (exit 2) to enforce TDD discipline.
+#
+# Exits 0 when:
+#   - No .tdd-ai.json exists (not in a TDD session)
+#   - Phase is not "red"
+#   - The file being written matches a test pattern
+#   - Tool is not a file-write tool (Write/Edit)
+#
+# Exits 2 (BLOCK) when:
+#   - Phase is "red" and the file is not a test file
+#
+# Hook JSON is read from stdin (Claude Code PreToolUse format).
+# The tool_input contains file_path for Write/Edit tools.
+set -euo pipefail
+
+INPUT=$(cat)
+
+# Only gate Write and Edit tools
+TOOL_NAME=$(echo "$INPUT" | jq -r '.tool_name // ""')
+if [[ "$TOOL_NAME" != "Write" && "$TOOL_NAME" != "Edit" ]]; then
+  exit 0
+fi
+
+# No session file — not in a TDD session
+SESSION_FILE=".tdd-ai.json"
+if [[ ! -f "$SESSION_FILE" ]]; then
+  exit 0
+fi
+
+# Read current phase
+PHASE=$(jq -r '.phase // ""' "$SESSION_FILE")
+if [[ "$PHASE" != "red" ]]; then
+  exit 0
+fi
+
+# Extract file path from tool input
+FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // ""')
+if [[ -z "$FILE_PATH" ]]; then
+  exit 0
+fi
+
+# Check if file matches test patterns
+BASENAME=$(basename "$FILE_PATH")
+if [[ "$BASENAME" == *_test.* ]] || \
+   [[ "$BASENAME" == *.test.* ]] || \
+   [[ "$BASENAME" == *.spec.* ]] || \
+   [[ "$FILE_PATH" == */test/* ]] || \
+   [[ "$FILE_PATH" == */tests/* ]]; then
+  exit 0
+fi
+
+# Block non-test file writes during RED phase
+echo '{"result":"BLOCKED: During the RED phase, only test files may be written. Write your failing test first, then advance to GREEN to write implementation code."}' >&2
+exit 2
+```
+
+**Step 3.** Create `.claude/hooks/tdd-commit-check.sh` with the following contents:
+
+```bash
+#!/usr/bin/env bash
+# tdd-commit-check.sh — Claude Code PreToolUse hook for commit gating.
+#
+# Blocks git commit when the TDD phase is not "done".
+# Ensures all specs are completed through RED-GREEN-REFACTOR before committing.
+#
+# Exits 0 when:
+#   - No .tdd-ai.json exists (not in a TDD session)
+#   - Phase is "done"
+#   - Command is not a git commit
+#
+# Exits 2 (BLOCK) when:
+#   - Phase is not "done" and command is git commit
+set -euo pipefail
+
+INPUT=$(cat)
+
+# Extract the bash command
+COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // ""')
+
+# Only gate git commit commands
+if [[ "$COMMAND" != *"git commit"* && "$COMMAND" != *"git -C"*"commit"* ]]; then
+  exit 0
+fi
+
+# No session file — not in a TDD session
+SESSION_FILE=".tdd-ai.json"
+if [[ ! -f "$SESSION_FILE" ]]; then
+  exit 0
+fi
+
+# Read current phase
+PHASE=$(jq -r '.phase // ""' "$SESSION_FILE")
+if [[ "$PHASE" == "done" ]]; then
+  exit 0
+fi
+
+# Block commit when TDD cycle is not complete
+echo '{"result":"BLOCKED: TDD cycle not complete. Current phase is '"$PHASE"'. Complete all specs through RED-GREEN-REFACTOR before committing."}' >&2
+exit 2
+```
+
+**Step 4.** Make both scripts executable:
+
+```bash
+chmod +x .claude/hooks/tdd-guard.sh .claude/hooks/tdd-commit-check.sh
+```
+
+**Step 5.** Add the hook configuration to `.claude/settings.json`:
 
 ```json
 {
