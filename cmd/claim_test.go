@@ -420,6 +420,9 @@ func TestClaimLoopWithTheRealTracer(t *testing.T) {
 	if !observe.Available() {
 		t.Skip("strace is not available")
 	}
+	// With a real locale, glibc loads its locale files on every start. CI
+	// runners set one, so pin it here and keep that noise out of evidence.
+	t.Setenv("LANG", "C.UTF-8")
 	dir := setupClaimProject(t)
 	script := filepath.Join(dir, "skills", "invoice", "report.sh")
 	if err := os.WriteFile(script, []byte("cat invoices/march.csv\n"), 0o644); err != nil {

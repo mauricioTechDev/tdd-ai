@@ -1,6 +1,8 @@
 package claims
 
 import (
+	"os"
+	"path/filepath"
 	"reflect"
 	"testing"
 	"time"
@@ -22,6 +24,7 @@ func testResult() *observe.Result {
 				{Path: "/work/proj/out/report.json", Write: true},
 				{Path: "/work/proj/invoices", Dir: true},
 				{Path: "/etc/ld.so.cache"},
+				{Path: "/etc/locale.alias"},
 				{Path: "/usr/lib/x86_64-linux-gnu/libc.so.6"},
 				{Path: "/opt/node22/bin/node"},
 				{Path: "/tmp/scratch-123", Write: true},
@@ -61,6 +64,39 @@ func TestFromResultClassifiesWhatTheCommandTouched(t *testing.T) {
 	check("Execs", ev.Execs, []string{"node", "curl"})
 	if ev.Pins["SKILL.md"] != "abc" {
 		t.Errorf("Pins = %v", ev.Pins)
+	}
+}
+
+func TestFromResultIgnoresTheRealPathOfASymlinkedProgram(t *testing.T) {
+	dir, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	target := filepath.Join(dir, "opt", "node22", "bin", "node")
+	link := filepath.Join(dir, "bin", "node")
+	for _, d := range []string{filepath.Dir(target), filepath.Dir(link)} {
+		if err := os.MkdirAll(d, 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.WriteFile(target, []byte("#!/bin/sh\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(target, link); err != nil {
+		t.Fatal(err)
+	}
+	res := &observe.Result{Trace: &observe.Trace{
+		Opens: []observe.Open{{Path: target}},
+		Execs: []string{link},
+	}}
+	// Temp stays unset so the test directory is not ignored as scratch space.
+	loc := Locations{Project: "/work/proj", Home: "/home/u"}
+	ev := FromResult(loc, res, nil, "strace", time.Now())
+	if len(ev.ExternalReads) != 0 {
+		t.Errorf("ExternalReads = %v, want none", ev.ExternalReads)
+	}
+	if !reflect.DeepEqual(ev.Execs, []string{"node"}) {
+		t.Errorf("Execs = %v, want [node]", ev.Execs)
 	}
 }
 

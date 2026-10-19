@@ -38,8 +38,9 @@ All of them support `--format json`.
 - **Reads and writes inside the project**, as project-relative paths. Writes
   include creating, truncating, renaming and removing files.
 - **Reads and writes outside the project**, as `~/...` or absolute paths.
-  Runtime and system files (`/usr`, `/lib`, `/proc`, the loader cache, the
-  interpreter binary itself) and the temp directory are left out.
+  Runtime and system files (`/usr`, `/lib`, `/proc`, the loader cache, glibc's
+  locale alias table, the interpreter binary itself, even when it is
+  symlinked) and the temp directory are left out.
 - **Network activity**: every destination of `connect`, `sendto` and `sendmsg`
   (`1.2.3.4:443`, `[::1]:9`, `unix:/run/x.sock`), listening addresses
   (`bind:0.0.0.0:8080`) and internet sockets opened (`socket:inet`). Failed

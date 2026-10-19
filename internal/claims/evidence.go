@@ -38,10 +38,13 @@ func realPath(p string) string {
 
 // systemPrefixes are read by the dynamic loader and language runtimes on every
 // start. They say nothing about a claim, so evidence leaves them out.
+// /etc/locale.alias is glibc's locale alias table: with LANG set, every
+// program reads /usr/share/locale/locale.alias, which Debian and Ubuntu link
+// there, and the trace records the link's target.
 var systemPrefixes = []string{
 	"/usr/", "/lib/", "/lib32/", "/lib64/", "/libx32/", "/bin/", "/sbin/",
 	"/proc/", "/sys/", "/dev/",
-	"/etc/ld.so.", "/etc/localtime", "/etc/ssl/openssl.cnf",
+	"/etc/ld.so.", "/etc/localtime", "/etc/locale.alias", "/etc/ssl/openssl.cnf",
 }
 
 type place int
@@ -111,7 +114,13 @@ func FromResult(loc Locations, res *observe.Result, pins map[string]string, obse
 
 	execs := map[string]bool{}
 	for _, e := range res.Trace.Execs {
-		execs[filepath.Clean(e)] = true
+		e = filepath.Clean(e)
+		execs[e] = true
+		// A program can read its own image by its real path, so a symlinked
+		// install (/usr/local/bin/node -> /opt/node22/bin/node) counts too.
+		if resolved, err := filepath.EvalSymlinks(e); err == nil {
+			execs[resolved] = true
+		}
 	}
 	for _, o := range res.Trace.Opens {
 		where, p := loc.classify(o.Path, execs)
