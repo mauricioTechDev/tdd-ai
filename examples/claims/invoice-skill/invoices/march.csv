@@ -1,0 +1,5 @@
+vendor,amount,status
+Acme Supply,1200.00,paid
+Northwind,349.99,open
+Globex,80.50,paid
+Initech,415.00,overdue

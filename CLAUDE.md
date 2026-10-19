@@ -55,6 +55,8 @@ These hooks are registered in `.claude/settings.local.json` and run automaticall
 - `internal/reflection/` — Default reflection questions and answer validation for the refactor phase
 - `internal/verify/` — Post-hoc TDD compliance analysis: checks spec_picked events, RED failures, phase_set usage; returns compliance score (0-100%)
 - `internal/formatter/` — Formats output as text or JSON (`FormatGuidance`, `FormatStatus`, `FormatFullStatus`)
+- `internal/observe/` — Runs a command under `strace` (`Run`) or plainly (`RunPlain`) and parses the trace into files opened, network activity and programs executed
+- `internal/claims/` — Claims (experimental): storage in `.tdd-ai/claims.json`, evidence from observed runs, `Distill` (evidence → checks, with refusals) and `Evaluate` (checks vs a fresh run)
 
 ### Key Concepts
 
@@ -90,6 +92,8 @@ The CLI follows Kent Beck's canonical TDD tight loop. Instead of batch-processin
 - `tdd-commit-check.sh` — Blocks `git commit` when phase is not `done`
 
 **Session File:** `.tdd-ai.json` in the working directory stores phase, mode, agent mode, specs, test command, last test result, current spec ID, iteration count, reflections, and event history.
+
+**Claims (experimental):** `tdd-ai claim add|verify|distill|check|list` turn a plain-language claim about a command into deterministic checks. `verify` runs the command under strace and stores evidence; `distill` turns accepted evidence into checks and refuses network activity, paths outside the project and other programs unless allowed with flags; `check` reruns the command and compares (exit 1 on failure). Claims live in `.tdd-ai/claims.json` with expected output in `.tdd-ai/expected/` (committed) and the latest observed output in `.tdd-ai/observed/` (ignored). Unlike the TDD flow, claims run commands themselves. Tests stub the tracer through the `traceAvailable`, `runTraced`, `runPlain` and `claimClock` variables in `cmd/claim.go`. See `docs/claims.md`.
 
 **Output Format:** All commands support `--format json` for machine-readable output. Format auto-detects: JSON when piped, text when in a terminal.
 

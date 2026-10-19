@@ -1,0 +1,68 @@
+{
+  "claims": [
+    {
+      "id": 1,
+      "text": "reconcile only reads ./invoices and never touches the network",
+      "run": [
+        "node",
+        "skills/invoice/reconcile.mjs",
+        "invoices/march.csv"
+      ],
+      "pins": [
+        "skills/invoice/SKILL.md",
+        "skills/invoice/reconcile.mjs"
+      ],
+      "status": "verified",
+      "added_at": "2026-10-19T15:46:14Z",
+      "evidence": {
+        "observed_at": "2026-10-19T15:49:48Z",
+        "observer": "strace",
+        "exit_code": 0,
+        "stdout_sha256": "227f6fcc80dcb484a412f839a37aa24dc5d855acbf3f93f52f1680e950512a35",
+        "stdout_bytes": 104,
+        "reads": [
+          "invoices/march.csv",
+          "skills/invoice/reconcile.mjs"
+        ],
+        "writes": [],
+        "external_reads": [],
+        "external_writes": [],
+        "network": [],
+        "execs": [
+          "node"
+        ],
+        "pins": {
+          "skills/invoice/SKILL.md": "989afee89701b8ea2351ddebdac989321be0489fbf4d348f704b2117dcd09c79",
+          "skills/invoice/reconcile.mjs": "04af55973bec3a54a22e17db2b055c6b3f45dcb2c6edffa610ac42621946f9eb"
+        }
+      },
+      "checks": {
+        "distilled_at": "2026-10-19T15:49:48Z",
+        "run": [
+          "node",
+          "skills/invoice/reconcile.mjs",
+          "invoices/march.csv"
+        ],
+        "pins": {
+          "skills/invoice/SKILL.md": "989afee89701b8ea2351ddebdac989321be0489fbf4d348f704b2117dcd09c79",
+          "skills/invoice/reconcile.mjs": "04af55973bec3a54a22e17db2b055c6b3f45dcb2c6edffa610ac42621946f9eb"
+        },
+        "reads": [
+          "invoices/**",
+          "skills/invoice/**"
+        ],
+        "writes": [],
+        "external": [],
+        "network": [],
+        "execs": [
+          "node"
+        ],
+        "exit_code": 0,
+        "stdout": ".tdd-ai/expected/1.out",
+        "stdout_sha256": "227f6fcc80dcb484a412f839a37aa24dc5d855acbf3f93f52f1680e950512a35"
+      },
+      "note": "SKILL.md only says to run reconcile.mjs and keep invoices local; the run read only the CSV and its own script, with no network and no other programs"
+    }
+  ],
+  "next_id": 2
+}

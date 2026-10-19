@@ -22,7 +22,10 @@ It provides phase tracking, spec management, and phase-gating. The state
 machine enforces TDD discipline — constraints are enforced, not instructed.
 
 The CLI does NOT run tests — the AI agent runs tests itself. This tool
-provides the state machine and guardrails that keep the TDD loop tight.`,
+provides the state machine and guardrails that keep the TDD loop tight.
+
+Claims (experimental, 'tdd-ai claim') do run commands: they observe what a
+command touches once, then check that it stays that way on every run.`,
 	PersistentPreRun: func(cmd *cobra.Command, _ []string) {
 		// Auto-detect format: default to JSON when stdout is not a terminal
 		// (i.e., when an AI agent is running the CLI via pipe/redirect).

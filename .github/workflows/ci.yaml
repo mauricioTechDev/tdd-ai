@@ -21,8 +21,15 @@ jobs:
         with:
           version: v2.9
 
+      - name: Install strace
+        run: sudo apt-get update && sudo apt-get install -y strace
+
       - name: Test
         run: go test -race -coverprofile=coverage.out ./...
 
       - name: Build
-        run: go build -o /dev/null .
+        run: go build -o bin/tdd-ai .
+
+      - name: Check example claims
+        working-directory: examples/claims/invoice-skill
+        run: ../../../bin/tdd-ai claim check --format text
