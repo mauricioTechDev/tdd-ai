@@ -135,6 +135,11 @@ tdd-ai phase next --test-result pass
 | `tdd-ai status` | Full session overview (phase, mode, specs, compliance score) |
 | `tdd-ai reset` | Clear session and start over |
 | `tdd-ai version` | Print version |
+| `tdd-ai claim add "claim" [--pin file]... -- <cmd>` | Record a claim and the command that exercises it (experimental) |
+| `tdd-ai claim verify <id>` | Run the command under a tracer and record what it touched |
+| `tdd-ai claim distill <id> --note "why"` | Turn accepted evidence into deterministic checks |
+| `tdd-ai claim check [id...]` | Rerun the checks; exit 1 on any failure |
+| `tdd-ai claim list` | Show claims and their status |
 
 All commands support `--format json` for machine-readable output.
 
@@ -259,6 +264,30 @@ tdd-ai phase next --test-result pass
 ```
 
 When `--test-result` is omitted and no stored test result exists, a warning is printed but the transition still proceeds.
+
+### Claims: Verify Once, Check on Every Run (experimental)
+
+Tests cover code. Claims cover the things agents need to trust that tests don't: what a skill's script, a CLI or a local tool actually touches.
+
+```bash
+# 1. Record the claim and the command that exercises it
+tdd-ai claim add "reconcile only reads ./invoices and never touches the network" \
+  --pin skills/invoice/SKILL.md --pin skills/invoice/reconcile.mjs \
+  -- node skills/invoice/reconcile.mjs invoices/march.csv
+
+# 2. Verify once: run it under strace and record what it read, wrote, connected to and ran
+tdd-ai claim verify 1
+
+# 3. After judging the evidence, distill it into deterministic checks
+tdd-ai claim distill 1 --note "no network activity and reads stay in invoices and the skill"
+
+# 4. Check on every run: pins, policy, exit code and output, no model involved
+tdd-ai claim check
+```
+
+Unlike the TDD flow, claims run the command themselves: the evidence is observed, not reported. Distill refuses evidence that needs a decision (network activity, files outside the project, other programs) until it is accepted explicitly. Verification needs Linux with `strace`; `claim check --no-trace` checks pins, exit code and output anywhere.
+
+See [docs/claims.md](docs/claims.md) for the design and [examples/claims/invoice-skill](examples/claims/invoice-skill) for a full run, including a check catching a script that starts phoning home.
 
 ## Using tdd-ai with AI Agents
 
